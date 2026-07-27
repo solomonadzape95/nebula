@@ -30,3 +30,8 @@ deployments/*.local.json
 
 # Soroban test snapshots (regenerated on every test run)
 test_snapshots/
+
+# Next.js
+web/.next/
+web/out/
+web/next-env.d.ts

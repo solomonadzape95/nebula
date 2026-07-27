@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Nebula design tokens
+
+   Everything is built around one idea: a dithered, printed-on-black look.
+   Two ink colours, one signal colour, and the rest is texture. Restraint is
+   the point — dithering only reads as deliberate when the palette under it
+   is nearly monochrome.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* Ground */
+  --color-void: #07080a;
+  --color-surface: #0c0e12;
+  --color-raised: #13161b;
+  --color-edge: #1e232b;
+
+  /* Ink */
+  --color-ink: #ece9e2;
+  --color-ink-dim: #8b8f96;
+  --color-ink-faint: #565b63;
+
+  /* Signal — phosphor mint. Yield, confirmation, "up". */
+  --color-signal: #86f2c0;
+  --color-signal-dim: #3d8f6d;
+
+  /* Ember — fees, warnings, "down". Used sparingly. */
+  --color-ember: #f0a868;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Halftone cell. Every dot grid on the site is a multiple of this. */
+  --dither-cell: 3px;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-void);
+  }
+}
+
+@utility tabular {
+  /* Numbers must never reflow as they tick. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@layer components {
+  /* ── Texture ──────────────────────────────────────────────────────────
+     A real halftone grid, not an image. Sits above everything at very low
+     opacity so every surface shares the hero's texture — which is what makes
+     the shader feel like part of the design rather than a banner pasted on. */
+  .dither-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image: radial-gradient(circle at 1px 1px, #fff 0.5px, transparent 0);
+    background-size: var(--dither-cell) var(--dither-cell);
+  }
+
+  .dither {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-ink) 22%, transparent) 0.5px,
+      transparent 0
+    );
+    background-size: var(--dither-cell) var(--dither-cell);
+  }
+
+  /* Film grain from SVG turbulence — no asset to download. */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.14;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Scanline wash — a CRT reference, one pixel on, one off. */
+  .scanlines::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.4;
+    background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.28) 2px 3px);
+  }
+
+  /* ── Type ─────────────────────────────────────────────────────────── */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* ── Surfaces ─────────────────────────────────────────────────────── */
+  .panel {
+    background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+    border: 1px solid var(--color-edge);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.8125rem 1.5rem;
+    border: 1px solid transparent;
+    transition: all 160ms ease;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--color-signal);
+    color: var(--color-void);
+    font-weight: 500;
+  }
+  .btn-primary:hover {
+    background: var(--color-ink);
+    /* Bloom, like phosphor. */
+    box-shadow: 0 0 34px -6px var(--color-signal);
+  }
+
+  .btn-ghost {
+    border-color: var(--color-edge);
+    color: var(--color-ink);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-ink-faint);
+    background: var(--color-raised);
+  }
+}
+
+/* Respect reduced motion: the shader stops, the layout is unaffected. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
