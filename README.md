@@ -262,6 +262,23 @@ cargo test --workspace
 |---|---|
 | [`NEBULA.md`](NEBULA.md) | Source of truth — mechanism design, yield sources, decisions, risks |
 | [`docs/SUCCESS_METRICS.md`](docs/SUCCESS_METRICS.md) | Level 4 requirement tracker and build plan |
+| [`indexer/README.md`](indexer/README.md) | Event indexer — setup, commands, and the two RPC gotchas |
+
+## Indexer
+
+`indexer/` ingests vault events into Postgres and is what makes the dashboard and the usage
+evidence possible:
+
+```bash
+cd indexer && npm install && cp .env.example .env
+npm run migrate && npm run sync
+npm run stats        # TVL, share price, depositor count, realized APY
+npm run depositors   # every depositing address, with tx hashes
+```
+
+It runs every 10 minutes from GitHub Actions. That schedule matters more than it looks: Soroban
+RPC discards events after roughly a week, and a gap cannot be backfilled once they are gone — so
+the record of who used the protocol has to be captured as it happens.
 
 ---
 

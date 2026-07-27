@@ -106,7 +106,7 @@ collection is *mandatory*, and an in-app widget is visible proof in screenshots.
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
 | 3.1 | Production deployment | Live on a real domain (Vercel + custom domain preferred over `*.vercel.app`). HTTPS. Uptime through the review window. | ⬜ | |
-| 3.2 | Monitoring + analytics | **PostHog** (funnels, events, sessions) **and** **Sentry** (error tracking + alerts), both live in production with real captured data. | ⬜ | |
+| 3.2 | Monitoring + analytics | **PostHog** (funnels, events, sessions) **and** **Sentry** (error tracking + alerts), both live in production with real captured data. | 🟡 | Indexer live; PostHog/Sentry land with the frontend |
 | 3.3 | Optimized UX | Lighthouse ≥90 performance and ≥90 accessibility on mobile. First deposit in <2 min. No dead ends. | ⬜ | |
 | 3.4 | Project structure + docs | Monorepo per NEBULA.md §8. README with setup, architecture, contract addresses. Inline docs on every public contract function. | ⬜ | |
 
@@ -147,7 +147,7 @@ you where your onboarding actually leaks — fix the biggest drop before submitt
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
 | 4.1 | Contracts on Stellar testnet | Vault, nXLM token, Blend strategy all deployed; IDs in the README; verified on Stellar Expert. Full deposit → allocate → harvest → redeem cycle executed against the live Blend pool. | ✅ | [`deployments/testnet.json`](../deployments/testnet.json) |
-| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | 🟡 | 22 and counting |
+| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | 🟡 | 30 and counting |
 | 4.3 | Public GitHub repository | Public, with README, LICENSE, `.gitignore`, and no committed secrets. | ⬜ | Local only — not yet pushed |
 
 ### Commit discipline

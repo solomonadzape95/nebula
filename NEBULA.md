@@ -311,8 +311,8 @@ nebula/
 ├── scripts/
 │   ├── deploy.sh                ← salted paired deploy of vault + share token
 │   └── keeper.sh                ← allocate + harvest loop
-├── web/                         ← Next.js frontend (not yet started)
-└── indexer/                     ← event indexer + API (not yet started)
+├── indexer/                     ← Soroban event indexer → Postgres
+└── web/                         ← Next.js frontend (not yet started)
 ```
 
 ### Deploying the vault/token pair
