@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
    Nebula design tokens
@@ -7,6 +11,9 @@
    Two ink colours, one signal colour, and the rest is texture. Restraint is
    the point — dithering only reads as deliberate when the palette under it
    is nearly monochrome.
+
+   shadcn and dither-kit both expect their own token names, so those are
+   mapped onto this palette below rather than left to fight it.
    ───────────────────────────────────────────────────────────────────────── */
 
 @theme {
@@ -28,11 +35,17 @@
   /* Ember — fees, warnings, "down". Used sparingly. */
   --color-ember: #f0a868;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Halftone cell. Every dot grid on the site is a multiple of this. */
   --dither-cell: 3px;
+
+  /* Display scale — deliberately large. This design lives or dies on the
+     contrast between huge quiet type and fine dither texture. */
+  --text-display: clamp(3rem, 9vw, 7.5rem);
+  --text-headline: clamp(2.25rem, 5vw, 4rem);
+  --text-statement: clamp(1.75rem, 3.6vw, 3.25rem);
 }
 
 @layer base {
@@ -105,12 +118,60 @@
     background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / 0.28) 2px 3px);
   }
 
+  /* ── Dithered type ────────────────────────────────────────────────────
+     A word punched through a halftone mask. The dot grid is masked over the
+     glyphs themselves, so the letters genuinely dissolve into dots rather
+     than sitting behind a texture. The mask breathes, which makes the word
+     read as transmitted rather than printed. */
+  .dither-word {
+    position: relative;
+    color: var(--color-signal);
+    -webkit-mask-image: radial-gradient(circle at 1px 1px, #000 0.85px, transparent 0);
+    mask-image: radial-gradient(circle at 1px 1px, #000 0.85px, transparent 0);
+    -webkit-mask-size: 2.5px 2.5px;
+    mask-size: 2.5px 2.5px;
+    animation: dither-breathe 4.5s ease-in-out infinite;
+  }
+
+  /* A solid ghost underneath keeps the word legible at small sizes, where a
+     pure dot mask would shred it. */
+  .dither-word::before {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: var(--color-signal);
+    opacity: 0.22;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
   /* ── Type ─────────────────────────────────────────────────────────── */
+  .text-display {
+    font-size: var(--text-display);
+    line-height: 0.94;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+  }
+
+  .text-headline {
+    font-size: var(--text-headline);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-weight: 500;
+  }
+
+  .text-statement {
+    font-size: var(--text-statement);
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+
   .label {
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     line-height: 1.2;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--color-ink-faint);
   }
@@ -129,10 +190,10 @@
     justify-content: center;
     gap: 0.5rem;
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 0.8125rem 1.5rem;
+    padding: 0.9375rem 1.75rem;
     border: 1px solid transparent;
     transition: all 160ms ease;
     white-space: nowrap;
@@ -160,6 +221,28 @@
   }
 }
 
+@keyframes dither-breathe {
+  0%,
+  100% {
+    -webkit-mask-size: 2.5px 2.5px;
+    mask-size: 2.5px 2.5px;
+  }
+  50% {
+    -webkit-mask-size: 4.5px 4.5px;
+    mask-size: 4.5px 4.5px;
+  }
+}
+
+@keyframes glyph-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--glyph-rotate, 0deg));
+  }
+  50% {
+    transform: translateY(-14px) rotate(calc(var(--glyph-rotate, 0deg) + 2deg));
+  }
+}
+
 /* Respect reduced motion: the shader stops, the layout is unaffected. */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -169,6 +252,64 @@
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   shadcn / dither-kit interop
+
+   Their components read these variable names. Pointing them at the Nebula
+   palette means a stock shadcn component drops in already looking correct,
+   instead of arriving white and needing to be overridden everywhere.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  /* Nebula is dark-only by design; there is no light theme to switch to. */
+  --radius: 0rem;
+  --background: #07080a;
+  --foreground: #ece9e2;
+  --card: #0c0e12;
+  --card-foreground: #ece9e2;
+  --popover: #0c0e12;
+  --popover-foreground: #ece9e2;
+  --primary: #86f2c0;
+  --primary-foreground: #07080a;
+  --secondary: #13161b;
+  --secondary-foreground: #ece9e2;
+  --muted: #13161b;
+  --muted-foreground: #8b8f96;
+  --accent: #13161b;
+  --accent-foreground: #86f2c0;
+  --destructive: #f0a868;
+  --border: #1e232b;
+  --input: #1e232b;
+  --ring: #3d8f6d;
 }

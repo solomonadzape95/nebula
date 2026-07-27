@@ -19,10 +19,12 @@ const Dithering = dynamic(
   { ssr: false },
 );
 
-export type FieldVariant = "blackhole" | "wormhole" | "ripple" | "drift";
+export type FieldVariant = "warp" | "blackhole" | "wormhole" | "ripple" | "drift";
 
 const VARIANTS = {
-  /** A dithered sphere reads as an event horizon. The hero. */
+  /** Folding spacetime. The hero — more turbulent and less symmetrical than a sphere. */
+  warp: { shape: "warp", type: "4x4", pxSize: 2.6, speed: 0.34, scale: 1.15 },
+  /** A dithered sphere reads as an event horizon. Secondary page heroes. */
   blackhole: { shape: "sphere", type: "4x4", pxSize: 2.4, speed: 0.42, scale: 1 },
   /** Twisting vortex — used where the page needs pull rather than mass. */
   wormhole: { shape: "swirl", type: "4x4", pxSize: 2.2, speed: 0.5, scale: 0.9 },
