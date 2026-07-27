@@ -6,8 +6,8 @@ nXLM is a value-accruing token: your balance never changes, but each nXLM become
 more XLM over time. It trades on SDEX, moves through path payments, and works as collateral in
 Soroban protocols — all while earning.
 
-> **Status:** contracts complete and tested, testnet deployment pending. See
-> [`docs/SUCCESS_METRICS.md`](docs/SUCCESS_METRICS.md) for the build plan.
+> **Status:** live on Stellar testnet, earning real interest from a Blend pool. Frontend and
+> indexer next. See [`docs/SUCCESS_METRICS.md`](docs/SUCCESS_METRICS.md) for the build plan.
 
 ---
 
@@ -197,11 +197,32 @@ only move funds between the vault and already-registered strategies.
 
 ## Contract addresses
 
-| Contract | Testnet |
+Stellar **testnet**. Machine-readable copy in [`deployments/testnet.json`](deployments/testnet.json).
+
+| Contract | Address |
 |---|---|
-| Vault | _pending deployment_ |
-| nXLM token | _pending deployment_ |
-| Underlying (native XLM SAC) | _pending deployment_ |
+| Vault | [`CDGRL2EM…3VXTUPHO`](https://stellar.expert/explorer/testnet/contract/CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO) |
+| nXLM share token | [`CAVRFADY…DZ5JB3SN2`](https://stellar.expert/explorer/testnet/contract/CAVRFADYBNPLRL734VGRS6FW4LXRDEKRZZDQCSMB7VXCFZPDZ5JB3SN2) |
+| Blend strategy | [`CDSQOX3G…GL5DAYQAR`](https://stellar.expert/explorer/testnet/contract/CDSQOX3GQSE4HEM5IWKEMIZ56JHMTPFN3ZUN5PI4TH5WVFYGL5DAYQAR) |
+| Blend pool (upstream) | [`CCEBVDYM…KHPQ44HGF`](https://stellar.expert/explorer/testnet/contract/CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF) |
+| Underlying — native XLM SAC | [`CDLZFC3S…VU2HHGCYSC`](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
+
+### Verified live on testnet
+
+Every path exercised against the real Blend pool, not a stand-in:
+
+| Path | Result |
+|---|---|
+| Deposit | 100 XLM in → 999,999,000 nXLM minted, 1,000 dead shares locked in the vault |
+| Redeem from reserve | Served from idle without touching the strategy |
+| Allocate | 54 XLM supplied to Blend → 331,026,297 bTokens at `b_rate` 1.631284927567 |
+| Harvest | Real interest: gross 1,789 stroops, fee 178, net 1,611 → **share price 10000000 → 10000026** |
+| Redeem forcing unwind | Pulled 239,999,194 back out of Blend mid-redemption |
+| Invariant | `total_assets == idle + Σ deployed` held after every operation |
+
+The allowance-based deposit path — the one thing local tests could not prove, because
+`mock_all_auths` makes every `require_auth` succeed — **works on-chain.** The transfer, `approve`,
+and Blend `supply` events all fired in one transaction with no `authorize_as_current_contract`.
 
 ---
 
@@ -227,7 +248,7 @@ afterwards.
 The Blend adapter is tested against a local stand-in that models a rising bToken rate. That covers
 the accounting but **not** the authorization path — `mock_all_auths` makes every `require_auth`
 succeed, so the allowance grant in `deposit` is exercised for its token effects, not its auth
-semantics. That needs verifying against a real pool on testnet.
+semantics. That gap is closed by the live testnet run above, where the real pool enforced real auth.
 
 ```bash
 cargo test --workspace

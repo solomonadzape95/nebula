@@ -146,9 +146,9 @@ you where your onboarding actually leaks — fix the biggest drop before submitt
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 4.1 | Contracts on Stellar testnet | Vault, nXLM token, strategy registry, Blend strategy all deployed. All contract IDs in the README. Verified on Stellar Expert. | ⬜ | |
-| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | ⬜ | |
-| 4.3 | Public GitHub repository | Public, with README, LICENSE, `.gitignore`, and no committed secrets. | ⬜ | |
+| 4.1 | Contracts on Stellar testnet | Vault, nXLM token, Blend strategy all deployed; IDs in the README; verified on Stellar Expert. Full deposit → allocate → harvest → redeem cycle executed against the live Blend pool. | ✅ | [`deployments/testnet.json`](../deployments/testnet.json) |
+| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | 🟡 | 22 and counting |
+| 4.3 | Public GitHub repository | Public, with README, LICENSE, `.gitignore`, and no committed secrets. | ⬜ | Local only — not yet pushed |
 
 ### Commit discipline
 
