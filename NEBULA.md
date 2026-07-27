@@ -206,6 +206,18 @@ trust.
 **MVP scope:** Blend supply strategy only. It is the simplest to reason about, has no
 impermanent loss, and unwinds cleanly. Aquarius comes in v1.1 once the vault accounting is proven.
 
+**Implementation note — where the yield actually comes from.** The Blend adapter harvests *interest*,
+not emissions. Interest accrues in XLM itself (the bToken rate rises), so it can be realized with
+no swap and credited straight to the share price. BLND emissions are a separate asset and need a
+DEX route to become XLM; until that route exists they are claimed to the treasury and deliberately
+excluded from the share price. Counting an asset the vault cannot redeem into would inflate the
+price against XLM the vault does not hold — the same class of mistake as trusting a strategy's
+self-reported gain.
+
+This matters for the APY story: **the honest MVP number is the lending rate alone.** Emissions are
+usually the larger component on Stellar today, so quoting a combined figure before the swap route
+ships would overstate what a depositor actually earns.
+
 ---
 
 ## 7. Architecture

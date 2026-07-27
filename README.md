@@ -93,6 +93,7 @@ contracts/
 ├── nxlm-token/        SEP-41 share token. Minter fixed to the vault at construction.
 ├── vault/             Deposits, redemptions, share price, allocation, harvest, registry
 └── strategies/
+    ├── blend/         Supplies XLM to a Blend lending pool, harvests borrower interest
     └── mock/          Controllable strategy: test double and Blend-unavailable fallback
 ```
 
@@ -120,6 +121,24 @@ pub trait Strategy {
 **Redemptions are never pausable.** A vault that can trap funds is a custodian, and Nebula is not
 one.
 
+### The Blend strategy
+
+Supplies XLM to a Blend lending pool and earns borrower interest. Two deliberate limits:
+
+- **Supply, never collateral.** Blend distinguishes `Supply` from `SupplyCollateral`; only the
+  latter backs borrowing and carries a health factor. Nebula never borrows, so its position cannot
+  be liquidated and is withdrawable whenever the pool holds cash.
+- **Harvest realizes interest, not emissions.** Interest accrues in XLM itself — the bToken rate
+  rises — so `harvest` withdraws exactly the surplus above cost basis and leaves the principal
+  working. BLND emissions are a different asset needing a DEX route to become XLM; until that
+  exists, `claim_emissions` sends them to the treasury and deliberately does **not** feed the share
+  price. Counting an asset the vault cannot redeem into would inflate the price against XLM it
+  does not hold.
+
+Blend publishes `blend-contract-sdk`, but it pins `soroban-sdk 25` against Nebula's 26 — two major
+SDK versions cannot link into one contract. The adapter mirrors the handful of Blend types it
+touches instead, which also avoids coupling Nebula to Blend's release cadence.
+
 ---
 
 ## Getting started
@@ -137,7 +156,7 @@ cargo install --locked stellar-cli
 ### Build and test
 
 ```bash
-cargo test --workspace     # 45 tests
+cargo test --workspace     # 57 tests
 stellar contract build     # release wasm for all contracts
 ```
 
@@ -153,6 +172,17 @@ then deploys the vault to it — the token's minter is immutable, so the pair mu
 that order. The vault verifies the binding on-chain and the deployment fails if it does not match.
 
 Addresses are written to `deployments/testnet.json`.
+
+### Register the Blend strategy
+
+```bash
+SOURCE=nebula-deployer BLEND_POOL=<pool address> ./scripts/add-blend-strategy.sh
+```
+
+Deploys the strategy against a specific Blend pool and registers it with the vault. `BLEND_POOL`
+is deliberately not defaulted — there is no canonical testnet pool, and pointing the vault at the
+wrong one should be a conscious act. The vault verifies the strategy's underlying matches its own
+before accepting it.
 
 ### Run the keeper
 
@@ -177,7 +207,7 @@ only move funds between the vault and already-registered strategies.
 
 ## Testing
 
-45 tests covering the accounting, the access control, and the attacks:
+57 tests covering the accounting, the access control, and the attacks:
 
 | Area | Covered |
 |---|---|
@@ -189,8 +219,15 @@ only move funds between the vault and already-registered strategies.
 | Liquidity | Redemption unwinds strategies; fails cleanly and atomically when illiquid |
 | Access control | Admin/keeper separation, non-removable funded strategies |
 | Lifecycle | Two depositors across two harvests, late joiner cannot claim earlier yield |
+| Blend adapter | Supply, interest accrual, harvest leaving principal working, partial withdrawal when the pool is short on cash, liquidity-bounded `max_withdrawable` |
 
-Every state-changing test asserts the `total_assets == idle + Σ deployed` invariant afterwards.
+Every state-changing vault test asserts the `total_assets == idle + Σ deployed` invariant
+afterwards.
+
+The Blend adapter is tested against a local stand-in that models a rising bToken rate. That covers
+the accounting but **not** the authorization path — `mock_all_auths` makes every `require_auth`
+succeed, so the allowance grant in `deposit` is exercised for its token effects, not its auth
+semantics. That needs verifying against a real pool on testnet.
 
 ```bash
 cargo test --workspace
