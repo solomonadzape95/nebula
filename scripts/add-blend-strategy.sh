@@ -65,6 +65,26 @@ stellar contract invoke \
   --weight_bps "$WEIGHT_BPS" \
   --cap "$CAP"
 
+log "Recording the strategy in ${DEPLOYMENT}"
+python3 - "$DEPLOYMENT" "$STRATEGY" "$BLEND_POOL" "$WEIGHT_BPS" "$CAP" <<'PY'
+import json, sys
+path, strategy, pool, weight, cap = sys.argv[1:6]
+with open(path) as f:
+    data = json.load(f)
+entries = [s for s in data.get("strategies", []) if s["address"] != strategy]
+entries.append({
+    "kind": "blend",
+    "address": strategy,
+    "pool": pool,
+    "weightBps": int(weight),
+    "cap": int(cap),
+})
+data["strategies"] = entries
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
+
 log "Registered strategies:"
 stellar contract invoke --id "$VAULT" --source "$SOURCE" --network "$NETWORK" -- strategies
 
