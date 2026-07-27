@@ -5,6 +5,7 @@ members = [
   "contracts/nxlm-token",
   "contracts/vault",
   "contracts/strategies/mock",
+  "contracts/strategies/blend",
 ]
 
 [workspace.package]

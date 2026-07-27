@@ -1011,6 +1011,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "nebula-strategy-blend"
+version = "0.1.0"
+dependencies = [
+ "nebula-interfaces",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "nebula-strategy-mock"
 version = "0.1.0"
 dependencies = [
