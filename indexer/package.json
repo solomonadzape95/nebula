@@ -1,0 +1,29 @@
+{
+  "name": "nebula-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ingests Nebula vault events from Soroban RPC into Postgres",
+  "license": "Apache-2.0",
+  "scripts": {
+    "migrate": "tsx src/main.ts migrate",
+    "sync": "tsx src/main.ts sync",
+    "watch": "tsx src/main.ts watch",
+    "stats": "tsx src/main.ts stats",
+    "depositors": "tsx src/main.ts depositors",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^16.1.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3"
+  }
+}
