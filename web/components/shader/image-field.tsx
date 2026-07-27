@@ -23,11 +23,11 @@ export type ImageFieldSource = "blackhole" | "nebula";
 const SOURCES: Record<ImageFieldSource, { src: string; alt: string }> = {
   blackhole: {
     src: "/img/blackhole.jpg",
-    alt: "A black hole with a relativistic jet — NASA/JPL-Caltech concept imagery",
+    alt: "A black hole with a relativistic jet. NASA/JPL-Caltech.",
   },
   nebula: {
     src: "/img/nebula.jpg",
-    alt: "The Crab Nebula — NASA/ESA Hubble Space Telescope",
+    alt: "The Crab Nebula. NASA/ESA Hubble Space Telescope.",
   },
 };
 

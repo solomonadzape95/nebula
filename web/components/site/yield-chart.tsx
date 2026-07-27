@@ -52,8 +52,8 @@ export function YieldChart() {
 
         {/* Each step up is a harvest. Saying so turns a pretty line into an explanation. */}
         <p className="mt-7 border-t border-edge pt-5 text-sm leading-relaxed text-ink-dim">
-          Every step up is a harvest — interest collected from Blend and credited to the price. It
-          has no mechanism for going down except a genuine loss.
+          Every step up is a harvest: interest collected from Blend and credited to the price. The
+          only thing that can push it down is a real loss.
         </p>
       </div>
     </div>

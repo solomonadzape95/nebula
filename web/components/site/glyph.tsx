@@ -27,7 +27,9 @@ export function Glyph({
   return (
     <span
       aria-hidden
-      className={`pointer-events-none absolute leading-none font-black select-none ${className ?? ""}`}
+      /* Hidden below `md`: at phone widths these either overlap the copy or push the page wide,
+         and neither is worth the decoration. */
+      className={`pointer-events-none absolute hidden leading-none font-black select-none md:block ${className ?? ""}`}
       style={{
         opacity,
         color: "var(--color-signal)",

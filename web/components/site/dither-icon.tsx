@@ -10,7 +10,7 @@ import type { LucideIcon } from "lucide-react";
 export function DitherIcon({
   icon: Icon,
   className,
-  size = 44,
+  size = 88,
 }: {
   icon: LucideIcon;
   className?: string;

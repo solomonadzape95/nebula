@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nebula — Liquid yield for XLM",
+  title: "Nebula · Liquid yield for XLM",
   description:
     "Deposit XLM, receive nXLM. It is worth more XLM every day, and stays tradeable and spendable the whole time.",
 };

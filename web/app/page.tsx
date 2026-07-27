@@ -6,17 +6,20 @@ import { ImageField } from "@/components/shader/image-field";
 import { DitherIcon } from "@/components/site/dither-icon";
 import { DitherText } from "@/components/site/dither-text";
 import { Glyph } from "@/components/site/glyph";
+import { LiveBadge } from "@/components/site/live-badge";
 import { Nav } from "@/components/site/nav";
 import { NxlmDemo } from "@/components/site/nxlm-demo";
 import { Stat } from "@/components/site/stat";
 import { YieldChart } from "@/components/site/yield-chart";
 
+const VAULT_ID = "CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO";
+
 /**
  * Placeholder figures.
  *
  * These are the real values read off the testnet vault at the time of writing, so the layout is
- * designed against realistic magnitudes rather than lorem-ipsum numbers. They are NOT live yet —
- * wiring them to the contract and the indexer is the next step.
+ * designed against realistic magnitudes rather than lorem-ipsum numbers. They are NOT live yet.
+ * Wiring them to the contract and the indexer is the next step.
  */
 const PLACEHOLDER = {
   tvl: "130.00",
@@ -54,13 +57,13 @@ function Hero() {
         className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-[165vmax] -translate-x-1/2 -translate-y-1/2"
       />
 
-      {/* Vignette — pulls the centre dark so type stays legible over the brightest part. */}
+      {/* Vignette pulls the centre dark so type stays legible over the brightest part. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 62% 48% at 50% 50%, rgba(7,8,10,0.9) 0%, rgba(7,8,10,0.55) 45%, transparent 78%)",
+            "radial-gradient(ellipse 64% 50% at 50% 50%, rgba(7,8,10,0.9) 0%, rgba(7,8,10,0.55) 45%, transparent 78%)",
         }}
       />
       <div
@@ -69,23 +72,20 @@ function Hero() {
       />
 
       <div className="relative z-10 mx-auto max-w-5xl px-5 pt-24 pb-16 text-center sm:px-8">
-        <span className="label inline-flex items-center gap-2 border border-edge bg-void/60 px-3 py-1.5 backdrop-blur-sm">
-          <span className="inline-block size-1.5 animate-pulse rounded-full bg-signal" />
-          Live on Stellar testnet
-        </span>
+        <LiveBadge />
 
-        <h1 className="text-display mt-9 text-balance">
-          Earn on your XLM
+        <h1 className="text-display mt-10 text-balance text-ink">
+          Earn on your XLM.
           <br />
-          <span className="text-ink-dim">without locking it up.</span>
+          Keep it liquid.
         </h1>
 
-        <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-ink-dim text-pretty sm:text-xl">
-          Deposit XLM, receive <span className="text-ink">nXLM</span>. It is worth more XLM every
-          day — and you can trade or spend it whenever you like.
+        <p className="mx-auto mt-9 max-w-2xl text-lg leading-relaxed text-ink-dim text-pretty sm:text-xl lg:text-[1.375rem]">
+          Deposit XLM and receive <span className="text-ink">nXLM</span>. It grows in value every
+          day, and stays tradeable and spendable the whole time.
         </p>
 
-        <div className="mt-11 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link href="/app" className="btn btn-primary w-full sm:w-auto">
             Launch app
           </Link>
@@ -103,7 +103,7 @@ function Hero() {
 function StatBand() {
   return (
     <section className="relative z-10 border-y border-edge bg-void">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-5 py-12 sm:px-8 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-10 px-5 py-12 sm:px-8 lg:grid-cols-4">
         <Stat label="Total value locked" value={PLACEHOLDER.tvl} unit="XLM" />
         <Stat
           label="Share price"
@@ -115,7 +115,7 @@ function StatBand() {
         <Stat label="Depositors" value={PLACEHOLDER.depositors} />
         <Stat
           label="Realized APY"
-          value={PLACEHOLDER.apy ?? "—"}
+          value={PLACEHOLDER.apy ?? "n/a"}
           hint={PLACEHOLDER.apy ? undefined : "not enough history yet"}
         />
       </div>
@@ -132,12 +132,12 @@ function Problem() {
         char="?"
         rotate={-14}
         opacity={0.055}
-        className="top-1/2 -right-4 -translate-y-1/2 text-[22rem] sm:-right-10 sm:text-[30rem]"
+        className="top-1/2 -right-6 -translate-y-1/2 text-[24rem] lg:text-[32rem]"
       />
-      <p className="text-statement relative mx-auto max-w-4xl text-balance">
+      <p className="text-statement relative mx-auto max-w-4xl text-balance text-ink">
         Your XLM sits in a wallet <DitherText>earning nothing</DitherText>. Real yield exists on
-        Stellar — but claiming it means managing lending positions by hand.{" "}
-        <span className="text-ink-faint">Most people never do.</span>
+        Stellar, but reaching it means running lending positions by hand.{" "}
+        <span className="text-ink-faint">Almost nobody does.</span>
       </p>
     </Section>
   );
@@ -150,7 +150,7 @@ const STEPS = [
     n: "01",
     icon: ArrowDownToLine,
     title: "Deposit XLM",
-    body: "You receive nXLM in return. Think of it as your receipt — its quantity never changes again.",
+    body: "You get nXLM back. Think of it as your receipt. Its quantity never changes again.",
   },
   {
     n: "02",
@@ -161,8 +161,8 @@ const STEPS = [
   {
     n: "03",
     icon: Repeat,
-    title: "Redeem any time",
-    body: "Your nXLM is worth more XLM than when you got it. Or don't redeem — it keeps earning either way.",
+    title: "Cash out whenever",
+    body: "Your nXLM is worth more XLM than when you got it. Or just hold. It keeps earning either way.",
   },
 ];
 
@@ -173,17 +173,19 @@ function HowItWorks() {
         char="↗"
         rotate={8}
         opacity={0.045}
-        className="-top-16 -left-10 text-[20rem] sm:text-[26rem]"
+        className="-top-20 -left-12 text-[22rem] lg:text-[28rem]"
       />
       <div className="relative grid gap-px overflow-hidden border border-edge bg-edge md:grid-cols-3">
         {STEPS.map((step) => (
-          <div key={step.n} className="bg-void p-9 lg:p-11">
+          <div key={step.n} className="flex flex-col bg-void p-9 lg:p-12">
             <div className="flex items-start justify-between">
               <DitherIcon icon={step.icon} />
-              <span className="tabular font-mono text-xs text-signal-dim">{step.n}</span>
+              <span className="tabular font-mono text-sm text-signal-dim">{step.n}</span>
             </div>
-            <h3 className="mt-7 text-2xl font-medium tracking-tight">{step.title}</h3>
-            <p className="mt-3 text-base leading-relaxed text-ink-dim">{step.body}</p>
+            <h3 className="mt-10 text-2xl font-medium tracking-tight sm:text-[1.75rem]">
+              {step.title}
+            </h3>
+            <p className="mt-4 text-lg leading-relaxed text-ink-dim">{step.body}</p>
           </div>
         ))}
       </div>
@@ -200,24 +202,24 @@ function NxlmExplainer() {
         char="="
         rotate={-9}
         opacity={0.05}
-        className="-bottom-24 -left-8 text-[18rem] sm:text-[24rem]"
+        className="-bottom-28 -left-10 text-[20rem] lg:text-[26rem]"
       />
-      <div className="relative grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
+      <div className="relative grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
         <div>
-          <h2 className="text-headline text-balance">Think of it like gold.</h2>
-          <div className="mt-7 space-y-5 text-lg text-ink-dim">
-            <p className="leading-relaxed">
+          <h2 className="text-headline text-balance text-ink">Think of it like gold.</h2>
+          <div className="mt-8 space-y-6 text-lg leading-relaxed text-ink-dim lg:text-xl">
+            <p>
               You own 10 grams. A year later you still own{" "}
-              <span className="text-ink">10 grams</span> — the number never changes. It is simply
+              <span className="text-ink">10 grams</span>. The number never changes. It is simply
               worth more.
             </p>
-            <p className="leading-relaxed">
+            <p>
               nXLM works the same way. Your balance is <DitherText>frozen</DitherText> the moment
               you receive it. What rises is the price.
             </p>
-            <p className="leading-relaxed">
+            <p>
               That is what keeps it{" "}
-              <span className="text-ink">spendable everywhere else on Stellar</span> — it behaves
+              <span className="text-ink">spendable everywhere else on Stellar</span>. It behaves
               like an ordinary token, because it is one.
             </p>
           </div>
@@ -238,22 +240,24 @@ function YieldSource() {
         char="%"
         rotate={11}
         opacity={0.045}
-        className="-top-20 right-0 text-[18rem] sm:text-[24rem]"
+        className="-top-24 right-0 text-[20rem] lg:text-[26rem]"
       />
       <div className="relative grid gap-14 lg:grid-cols-[1fr_1.05fr] lg:gap-20">
         <div>
-          <h2 className="text-headline text-balance">Real interest, from real borrowers.</h2>
-          <p className="mt-7 text-lg leading-relaxed text-ink-dim">
+          <h2 className="text-headline text-balance text-ink">
+            Real interest, from real borrowers.
+          </h2>
+          <p className="mt-8 text-lg leading-relaxed text-ink-dim lg:text-xl">
             Nebula supplies your XLM to <span className="text-ink">Blend</span>, a lending market on
-            Stellar. People borrow against collateral and pay interest. That interest is the yield —{" "}
+            Stellar. People borrow against collateral and pay to do it. That interest is your yield:{" "}
             <DitherText>not emissions</DitherText>, not inflation, not a subsidy.
           </p>
 
-          <div className="mt-10 space-y-px border border-edge bg-edge">
+          <div className="mt-12 space-y-px border border-edge bg-edge">
             <Fact k="Source" v="Blend lending interest" />
-            <Fact k="Protocol fee" v="10% of yield — never of your deposit" />
+            <Fact k="Protocol fee" v="10% of yield, never of your deposit" />
             <Fact k="Withdrawals" v="Can never be paused" />
-            <Fact k="Stellar staking" v="Does not exist — SCP is not proof-of-stake" />
+            <Fact k="Stellar staking" v="Does not exist. SCP is not proof-of-stake." />
           </div>
         </div>
 
@@ -265,9 +269,9 @@ function YieldSource() {
 
 function Fact({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex flex-col gap-1 bg-void px-6 py-5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8">
+    <div className="flex flex-col gap-1.5 bg-void px-6 py-6 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8">
       <span className="label">{k}</span>
-      <span className="text-sm text-ink-dim sm:text-right">{v}</span>
+      <span className="text-base text-ink-dim sm:text-right">{v}</span>
     </div>
   );
 }
@@ -285,7 +289,7 @@ function Section({
 }) {
   return (
     <section id={id} className="relative overflow-hidden border-b border-edge">
-      <div className="relative mx-auto max-w-6xl px-5 py-28 sm:px-8 lg:py-36">
+      <div className="relative mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-28 lg:py-36">
         {label && (
           <div className="mb-14 flex items-center gap-4">
             <span className="label whitespace-nowrap">{label}</span>
@@ -302,11 +306,11 @@ function Section({
 
 function Footer() {
   return (
-    <footer className="relative overflow-hidden">
+    <footer className="relative flex min-h-[92svh] flex-col overflow-hidden">
       {/* A real photograph of a black hole, run through the same dither as the rest of the page. */}
       <ImageField
         source="blackhole"
-        className="pointer-events-none absolute inset-0 opacity-45"
+        className="pointer-events-none absolute inset-0 opacity-70"
         pxSize={2.6}
         colorSteps={3}
       />
@@ -315,35 +319,57 @@ function Footer() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, var(--color-void) 0%, rgba(7,8,10,0.55) 40%, rgba(7,8,10,0.92) 100%)",
+            "linear-gradient(to bottom, var(--color-void) 0%, rgba(7,8,10,0.35) 35%, rgba(7,8,10,0.82) 78%, var(--color-void) 100%)",
         }}
       />
 
-      <div className="relative mx-auto max-w-6xl px-5 pt-40 pb-14 sm:px-8 sm:pt-56">
-        <h2 className="text-headline max-w-2xl text-balance">
-          Put your XLM to work.
-        </h2>
-        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <Link href="/app" className="btn btn-primary w-full sm:w-auto">
-            Launch app
-          </Link>
-          <a
-            href="https://stellar.expert/explorer/testnet/contract/CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO"
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost w-full sm:w-auto"
-          >
-            View the contract
-          </a>
+      <div className="relative flex flex-1 items-center">
+        <div className="mx-auto w-full max-w-6xl px-5 py-28 sm:px-8">
+          <h2 className="text-headline max-w-2xl text-balance text-ink">Put your XLM to work.</h2>
+          <p className="mt-7 max-w-lg text-lg leading-relaxed text-ink-dim">
+            A testnet wallet, two minutes, and nothing at risk. See what it does before you decide
+            anything.
+          </p>
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <Link href="/app" className="btn btn-primary w-full sm:w-auto">
+              Launch app
+            </Link>
+            <a
+              href={`https://stellar.expert/explorer/testnet/contract/${VAULT_ID}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost w-full sm:w-auto"
+            >
+              Read the contract
+            </a>
+          </div>
         </div>
+      </div>
 
-        <div className="mt-20 flex flex-col gap-4 border-t border-edge pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-mono text-xs tracking-[0.2em] text-ink-faint uppercase">
-            Nebula — liquid yield for XLM
-          </span>
-          <span className="font-mono text-[0.6875rem] text-ink-faint">
-            Testnet. Tokens have no real value. Imagery: NASA/JPL-Caltech.
-          </span>
+      {/* Wordmark band. The drift field is barely there on purpose: it should register as a
+          texture behind the name, not as another animation competing with the hero. */}
+      <div className="relative overflow-hidden border-t border-edge/60">
+        <DitherField
+          variant="drift"
+          className="pointer-events-none absolute inset-0 opacity-[0.09]"
+          speed={0.35}
+        />
+        <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+          <p
+            aria-hidden
+            className="pt-10 leading-[0.78] font-medium tracking-[-0.05em] text-ink/[0.13] select-none"
+            style={{ fontSize: "var(--text-wordmark)" }}
+          >
+            nebula
+          </p>
+          <div className="flex flex-col gap-3 border-t border-edge/60 py-7 sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-mono text-xs tracking-[0.2em] text-ink-faint uppercase">
+              Liquid yield for XLM
+            </span>
+            <span className="font-mono text-[0.6875rem] text-ink-faint">
+              Testnet. Tokens have no real value. Imagery: NASA/JPL-Caltech.
+            </span>
+          </div>
         </div>
       </div>
     </footer>
