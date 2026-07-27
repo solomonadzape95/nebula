@@ -1,0 +1,47 @@
+name: Indexer
+
+# Soroban RPC discards events older than roughly a week. Running on a schedule from day one is
+# what guarantees there is a complete record of usage at submission time — a gap cannot be
+# backfilled once RPC has dropped it.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: indexer
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: indexer
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: indexer/package-lock.json
+
+      - run: npm ci
+
+      # `sync` exits non-zero when it detects a retention gap, so the run goes red rather than
+      # quietly under-reporting.
+      - name: Sync events
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NETWORK: testnet
+        run: npm run sync
+
+      - name: Report
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NETWORK: testnet
+        run: npm run stats >> "$GITHUB_STEP_SUMMARY"
