@@ -6,8 +6,10 @@ nXLM is a value-accruing token: your balance never changes, but each nXLM become
 more XLM over time. It trades on SDEX, moves through path payments, and works as collateral in
 Soroban protocols — all while earning.
 
-> **Status:** live on Stellar testnet, earning real interest from a Blend pool. Frontend and
-> indexer next. See [`docs/SUCCESS_METRICS.md`](docs/SUCCESS_METRICS.md) for the build plan.
+> **Status:** live on Stellar testnet, earning real interest from a Blend pool. Contracts, indexer
+> and web app are all built; the interface is deployed and the indexer syncs on a schedule into
+> hosted Postgres. Unaudited — testnet only, and see [Security](#security) for what would have to
+> change before it held real money.
 
 ---
 
@@ -38,22 +40,28 @@ validators. See [`NEBULA.md`](NEBULA.md) §0 for the full reasoning.
    Deposit XLM ──▶ Vault mints nXLM at the current share price
                         │
                         ▼
-              Keeper allocates across strategies
-              ┌─────────┼──────────┐
-              ▼         ▼          ▼
-           Blend     Aquarius    Reserve
-         (lending)  (AMM+AQUA)  (instant exit)
-              │         │          │
-              └─────────┼──────────┘
+              Keeper allocates above the reserve target
+              ┌────────────────────┐
+              ▼                    ▼
+           Blend                Reserve
+         (lending)           (instant exit)
+              │                    │
+              └─────────┬──────────┘
                         ▼
-          Harvest: claim rewards, swap to XLM,
-          credit to the vault → share price ↑
+        Harvest: sweep interest, mark each venue
+        to market, credit the rest → share price ↕
                         │
       ┌─────────────────┼─────────────────┐
       ▼                 ▼                 ▼
   Hold & accrue    Trade on SDEX     Redeem for XLM
                    / path payment     (+ accrued yield)
 ```
+
+One strategy ships today. The seam takes more (see [Adding a venue](#adding-a-venue)), and
+**Aquarius was evaluated and deliberately left out**: it is an AMM, so supplying to it means taking
+on impermanent loss, and a vault whose pitch is "deposit XLM, get more XLM" should not quietly
+become one that can return less of it than you put in. That belongs in a second, clearly-labelled
+vault rather than behind the same token.
 
 ### Share price
 
@@ -83,25 +91,58 @@ arriving — a strategy that reports a gain it did not deliver is rejected.
 Belt and braces on top of that: a virtual offset in every conversion, and 1000 dead shares locked
 at first deposit so total supply can never sit low enough for share rounding to be exploitable.
 
+### Losses are recognized, not deferred
+
+`deployed` is a cost basis, so on its own the vault cannot tell a strategy sitting on its principal
+apart from one that has lost half of it. `mark_to_market` runs at the top of **deposit, redeem and
+harvest**: any shortfall between what a venue holds and what the vault deployed there is written off
+against `total_assets` before the share price is quoted.
+
+Doing it on every priced action is the point. If a loss were only recognized at harvest, the first
+holders to redeem after a drawdown would be paid at the old price out of everyone else's principal,
+and the stragglers would find the vault empty. Charging it to every share at the same instant means
+leaving early buys nothing. It also closes the case where a strategy hands back principal and calls
+it yield — both are the same write-down, so the vault never has to trust a venue to classify its own
+shortfall honestly. The share price can therefore fall, and a `strategy_loss` event says why.
+
 ---
 
 ## Architecture
 
+Four pieces, deployed independently:
+
 ```
-contracts/
+contracts/             Soroban, Rust — the protocol itself
 ├── interfaces/        Strategy + ShareToken traits — the seam between vault and venues
 ├── nxlm-token/        SEP-41 share token. Minter fixed to the vault at construction.
 ├── vault/             Deposits, redemptions, share price, allocation, harvest, registry
 └── strategies/
     ├── blend/         Supplies XLM to a Blend lending pool, harvests borrower interest
-    └── mock/          Controllable strategy: test double and Blend-unavailable fallback
+    └── mock/          Controllable test double. Its levers are behind a `testutils`
+                       feature so they cannot reach a deployable wasm.
+
+indexer/               TypeScript — reads vault events from Soroban RPC into Postgres.
+                       Runs on a schedule from GitHub Actions, not a server.
+
+web/                   Next.js 16 — the interface. Reads the chain directly for live
+                       figures and the indexer for history. Deployed to Vercel.
+
+scripts/               Deploy, register a strategy, run the keeper, seed testnet.
 ```
 
-Every yield venue implements the same five-function trait, so adding Blend or Aquarius is a new
-contract rather than a vault change:
+### Adding a venue
+
+Every yield source implements one trait, so a new venue is a new contract rather than a change to
+the vault:
 
 ```rust
 pub trait Strategy {
+    /// The asset this venue takes. The vault refuses to register a mismatch.
+    fn underlying(env: Env) -> Address;
+    /// The one vault allowed to instruct it. Checked at registration, so assets
+    /// cannot be pushed somewhere this vault could never pull them back from.
+    fn vault(env: Env) -> Address;
+
     fn deposit(env: Env, amount: i128);
     fn withdraw(env: Env, amount: i128) -> i128;
     fn harvest(env: Env) -> i128;
@@ -110,16 +151,28 @@ pub trait Strategy {
 }
 ```
 
+Semantics are **push**: the vault transfers the asset first and then instructs the strategy, so a
+venue never pulls from the vault and never holds an allowance against it.
+
 ### Roles
 
 | Role | Can | Cannot |
 |---|---|---|
 | **User** | Deposit, redeem, transfer nXLM | — |
-| **Keeper** | `allocate`, `harvest`, `unwind` | Register strategies, move funds out of the vault |
-| **Admin** | Register/pause strategies, set fee and reserve, pause deposits, sweep donations | Mint nXLM, block redemptions, take user funds |
+| **Keeper** | `allocate`, `harvest`, `unwind` | Register strategies, send funds anywhere but a registered venue |
+| **Admin** | Register/pause strategies, set fee (capped at 20%) and reserve, pause deposits, sweep donations, rotate the keeper | Mint nXLM, block redemptions, touch the dead-share lock, take the reserve directly |
 
 **Redemptions are never pausable.** A vault that can trap funds is a custodian, and Nebula is not
-one.
+one. `sweep` reaches only the surplus above `idle`, and refuses the share token outright, so it
+cannot be used to reach accounted funds or unwind the dead-share lock.
+
+**The admin key is still the largest trust assumption here, and the table above should not be read
+as saying otherwise.** Registering a strategy is by definition the power to send vault assets to a
+contract of the admin's choosing, and the registration checks — matching underlying, matching vault
+— constrain which contract, not whose. There is no timelock, so a parameter change or a new venue
+lands in the same ledger it is signed in. On testnet that is a reasonable trade for iteration speed.
+Before real money it needs a timelock on `add_strategy` and `set_keeper`, a multisig on the admin
+key, and an external audit. See [Security](#security).
 
 ### The Blend strategy
 
@@ -130,10 +183,16 @@ Supplies XLM to a Blend lending pool and earns borrower interest. Two deliberate
   be liquidated and is withdrawable whenever the pool holds cash.
 - **Harvest realizes interest, not emissions.** Interest accrues in XLM itself — the bToken rate
   rises — so `harvest` withdraws exactly the surplus above cost basis and leaves the principal
-  working. BLND emissions are a different asset needing a DEX route to become XLM; until that
-  exists, `claim_emissions` sends them to the treasury and deliberately does **not** feed the share
-  price. Counting an asset the vault cannot redeem into would inflate the price against XLM it
-  does not hold.
+  working. BLND emissions are a different asset needing a DEX route to become XLM, and counting an
+  asset the vault cannot redeem into would inflate the price against XLM it does not hold.
+
+  `claim_emissions` exists on the strategy but is **currently unreachable**, and the honest reading
+  is that BLND is accruing to the position with no way to collect it. It authorizes against the
+  vault, and a contract can only be authorized for calls it makes itself — so the only possible
+  caller is the vault, which has no entry point that forwards to it. Collecting emissions needs
+  either a keeper-gated pass-through on the vault or a strategy-local treasury address set at
+  construction. It affects yield, not safety: nothing depends on it, and the share price already
+  ignores emissions by design.
 
 Blend publishes `blend-contract-sdk`, but it pins `soroban-sdk 25` against Nebula's 26 — two major
 SDK versions cannot link into one contract. The adapter mirrors the handful of Blend types it
@@ -147,6 +206,7 @@ touches instead, which also avoids coupling Nebula to Blend's release cadence.
 
 - Rust 1.85+ with the `wasm32v1-none` target
 - [Stellar CLI](https://developers.stellar.org/docs/tools/developer-tools/cli/stellar-cli) 23+
+- Node 22+ and a Postgres database, for the indexer and the web app
 
 ```bash
 rustup target add wasm32v1-none
@@ -156,7 +216,7 @@ cargo install --locked stellar-cli
 ### Build and test
 
 ```bash
-cargo test --workspace     # 57 tests
+cargo test --workspace     # 64 tests
 stellar contract build     # release wasm for all contracts
 ```
 
@@ -181,8 +241,21 @@ SOURCE=nebula-deployer BLEND_POOL=<pool address> ./scripts/add-blend-strategy.sh
 
 Deploys the strategy against a specific Blend pool and registers it with the vault. `BLEND_POOL`
 is deliberately not defaulted — there is no canonical testnet pool, and pointing the vault at the
-wrong one should be a conscious act. The vault verifies the strategy's underlying matches its own
-before accepting it.
+wrong one should be a conscious act. The vault verifies both that the strategy's underlying matches
+its own and that the strategy names this vault as its owner before accepting it.
+
+### Run the web app
+
+```bash
+cd web && npm install
+cp .env.example .env.local     # fill in DATABASE_URL and ADMIN_PASSWORD at minimum
+npm run dev
+```
+
+Live vault figures are read straight from the contracts by simulating a transaction — Soroban has no
+read endpoint, so a "read" is a simulation whose result is discarded. History, profiles and feedback
+come from the indexer's Postgres. Both degrade independently: if RPC is unreachable the page says so
+rather than showing a stale number, and if the database is down the live figures still render.
 
 ### Run the keeper
 
@@ -228,7 +301,7 @@ and Blend `supply` events all fired in one transaction with no `authorize_as_cur
 
 ## Testing
 
-57 tests covering the accounting, the access control, and the attacks:
+64 tests covering the accounting, the access control, and the attacks:
 
 | Area | Covered |
 |---|---|
@@ -238,7 +311,8 @@ and Blend `supply` events all fired in one transaction with no `authorize_as_cur
 | Strategies | Weight splitting, caps, pausing, asset mismatch, over-100% weights |
 | Yield | Share price rises on harvest, fee taken off the top, over-reporting rejected |
 | Liquidity | Redemption unwinds strategies; fails cleanly and atomically when illiquid |
-| Access control | Admin/keeper separation, non-removable funded strategies |
+| Access control | Admin/keeper separation, non-removable funded strategies, strategy bound to another vault rejected, share token not sweepable, burn requires the vault |
+| Drawdowns | Harvest writes a venue loss down, a loss is split across holders instead of paid to whoever redeems first, depositing after an unreported loss buys in at the lowered price, no fee on a losing period |
 | Lifecycle | Two depositors across two harvests, late joiner cannot claim earlier yield |
 | Blend adapter | Supply, interest accrual, harvest leaving principal working, partial withdrawal when the pool is short on cash, liquidity-bounded `max_withdrawable` |
 
@@ -256,12 +330,57 @@ cargo test --workspace
 
 ---
 
+## Security
+
+Nebula is **unaudited and on testnet.** Everything below is the current posture, not a claim that
+it is ready for real money.
+
+### On chain
+
+- **Redemption is never pausable**, and `mark_to_market` means the price it pays already reflects
+  any venue loss, so exiting first is not an advantage.
+- **The minter is immutable.** `nXLM` binds it at construction with no rotation entry point, so
+  holders trust the vault contract rather than an operator. Burning requires the vault too — a
+  bypassing burn would leave `total_shares` counting shares nobody holds and strand the XLM behind
+  them.
+- **Fees are capped at 20%** and validated in both the constructor and `set_params`. They apply
+  only to harvested gains, never to principal, and not at all in a period that lost money.
+- **Overflow-checked arithmetic** throughout, with explicit checked helpers and no unchecked casts.
+
+### Off chain
+
+- **The admin surface** sits behind an obscure prefix, an address allowlist, and a password compared
+  server-side. The session cookie is HMAC-signed with the expiry inside the signed payload, so it
+  cannot be forged by sending a header. Requests are rewritten away before the page renders, because
+  gating in a layout still runs the page and serializes its data into the RSC payload.
+- **Writes keyed by wallet address require proof of that wallet.** An address is a public
+  identifier, so anything that trusted one as an argument could be spoofed. Setting a username or
+  leaving a review means signing a challenge transaction built with sequence 0 — unsubmittable by
+  construction, since a valid sequence must be the account's current one plus one. Nonces are
+  single-use, enforced by a primary key rather than by clearing a cookie.
+- **Every SQL statement is parameterized**, in both the web app and the indexer.
+
+### Known gaps before mainnet
+
+| Gap | Why it matters |
+|---|---|
+| No external audit | The contracts have been reviewed only by their author |
+| No timelock on `add_strategy` / `set_keeper` | A new venue or a rotated keeper lands instantly |
+| Single admin key, not a multisig | One key is one point of failure |
+| Shared admin password | Fine for one operator on testnet; not an accountable identity |
+| Yield credited atomically at harvest | A deposit timed just before a harvest captures a share of yield it was not exposed to. Streaming it over the harvest interval is the fix |
+| `claim_emissions` unreachable | BLND accrues with no way to collect it — yield left on the table, not a safety issue |
+
+---
+
 ## Documentation
 
 | Document | What's in it |
 |---|---|
 | [`NEBULA.md`](NEBULA.md) | Source of truth — mechanism design, yield sources, decisions, risks |
 | [`docs/SUCCESS_METRICS.md`](docs/SUCCESS_METRICS.md) | Level 4 requirement tracker and build plan |
+| [`docs/FRONTEND_PLAN.md`](docs/FRONTEND_PLAN.md) | Page inventory and the landing-page section breakdown |
+| [`web/README.md`](web/README.md) | The interface — stack, design system, auth, environment |
 | [`indexer/README.md`](indexer/README.md) | Event indexer — setup, commands, and the two RPC gotchas |
 
 ## Indexer
@@ -276,9 +395,19 @@ npm run stats        # TVL, share price, depositor count, realized APY
 npm run depositors   # every depositing address, with tx hashes
 ```
 
-It runs every 10 minutes from GitHub Actions. That schedule matters more than it looks: Soroban
-RPC discards events after roughly a week, and a gap cannot be backfilled once they are gone — so
-the record of who used the protocol has to be captured as it happens.
+It runs every 10 minutes from GitHub Actions, which needs `DATABASE_URL` set as a repository secret.
+That schedule matters more than it looks: Soroban RPC discards events after roughly a week, and a
+gap cannot be backfilled once they are gone — so the record of who used the protocol has to be
+captured as it happens. A run exits non-zero if it detects a retention gap or fails to store a row,
+so an incomplete sync goes red rather than quietly reporting success.
+
+Ingestion is idempotent on the RPC event id, so re-reading a range is harmless, and events are
+accepted only from the configured vault contract — a filter enforced at the request *and* re-checked
+on arrival, since the RPC applying it is not one we run.
+
+> On hosted Postgres, use a **pooler** connection string rather than the direct host. Supabase's
+> direct endpoint is IPv6-only and GitHub Actions runners are IPv4-only, so the direct URL cannot
+> connect from CI at all.
 
 ---
 
