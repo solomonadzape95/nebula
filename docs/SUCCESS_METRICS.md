@@ -12,14 +12,35 @@
 
 ## 0. Scoreboard
 
+*Last audited against the repository on 2026-07-28, at 62 commits.*
+
 | Category | Requirements | Done |
 |---|---|---|
-| Production MVP | 4 | 0 / 4 |
+| Production MVP | 4 | 2 / 4 |
 | User Onboarding | 3 | 0 / 3 |
-| Product Quality | 4 | 0 / 4 |
-| Technical Standards | 3 | 0 / 3 |
+| Product Quality | 4 | 1 / 4 |
+| Technical Standards | 3 | 2 / 3 |
 | Demo & Review | 2 | 0 / 2 |
-| **Submission checklist** | **11** | **0 / 11** |
+| **Submission checklist** | **11** | **4 / 11** |
+
+### The three things actually standing between here and a pass
+
+Everything else is either done or is downstream of these.
+
+**1. The deployed contracts are not the reviewed contracts.** `deployments/testnet.json` was written
+at `b427840`; the security pass landed afterwards at `180ae18`. So the vault on testnet has no
+`mark_to_market`, no sweep guard on the share token, no `vault()` check in `add_strategy`, and a
+burn that any holder can call. The README and this document describe the fixed behaviour. **Redeploy
+before recruiting anyone** — it also restarts the "stable for ≥2 weeks" clock, which is a reason to
+do it today rather than next week. The 11 existing depositors are self-generated, so nothing of
+value is lost by starting the event history again.
+
+**2. Nobody outside this project has used it.** 11 depositors, all wallets generated and funded
+minutes apart from the same faucet. A reviewer will see that. This is the requirement that fails
+submissions and it cannot be backfilled in the final week.
+
+**3. Sentry is not installed.** 3.2 asks for PostHog *and* Sentry. PostHog is live and verified;
+Sentry is the smaller half of the same job and is still missing.
 
 ---
 
@@ -27,10 +48,10 @@
 
 | # | Requirement | Acceptance criteria — what "done" concretely means | Status | Evidence |
 |---|---|---|---|---|
-| 1.1 | Fully functional production-ready MVP | End-to-end on testnet: connect wallet → deposit XLM → receive nXLM → see share price → redeem XLM. Every step works on a clean browser with no console errors. | ⬜ | |
-| 1.2 | Stable frontend + contract architecture | Contracts deployed and stable for ≥2 weeks before submission with no redeploy. Frontend on a stable domain. Strategy trait implemented so adding a venue needs no vault change. | ⬜ | |
-| 1.3 | Mobile responsive UI | Every screen usable at 375px width. Wallet connect works in mobile browsers. No horizontal scroll anywhere. | ⬜ | |
-| 1.4 | Loading states + error handling | Skeletons on every async read. Disabled+spinner on every tx button. Human-readable errors for: wallet rejected, insufficient balance, missing trustline, tx timeout, network down, contract error. **No raw error codes shown to users.** | ⬜ | |
+| 1.1 | Fully functional production-ready MVP | End-to-end on testnet: connect wallet → deposit XLM → receive nXLM → see share price → redeem XLM. Every step works on a clean browser with no console errors. | ✅ | Full cycle executed against the live Blend pool; signing round trip verified end to end. 20 routes building. |
+| 1.2 | Stable frontend + contract architecture | Contracts deployed and stable for ≥2 weeks before submission with no redeploy. Frontend on a stable domain. Strategy trait implemented so adding a venue needs no vault change. | ⬜ | **Blocked: a redeploy is still owed.** The trait half is done — `Strategy` is implemented and a venue needs no vault change. The stability clock has not started, because the deployed contracts predate the security fixes. |
+| 1.3 | Mobile responsive UI | Every screen usable at 375px width. Wallet connect works in mobile browsers. No horizontal scroll anywhere. | 🟡 | Built responsive throughout; tab strips collapse behind a menu below `md`. Not yet checked on a real iOS or Android device. |
+| 1.4 | Loading states + error handling | Skeletons on every async read. Disabled+spinner on every tx button. Human-readable errors for: wallet rejected, insufficient balance, missing trustline, tx timeout, network down, contract error. **No raw error codes shown to users.** | ✅ | `VAULT_ERRORS` maps every contract code to a sentence in `lib/tx.ts`; `DataNotice` covers RPC and indexer outage; skeletons on async reads; tx buttons disable with a dithered spinner. |
 
 **Error handling is the cheapest place to look production-grade.** Most submissions at this level
 show a raw Soroban error string on failure. Map every error you can trigger to a plain sentence
@@ -53,9 +74,9 @@ plus a suggested fix. Reviewers notice immediately.
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 2.1 | Minimum 10 real users onboarded | ≥10 **distinct wallet addresses** that deposited. Aim for **20+** — some will be rejected as obviously self-generated. | ⬜ | |
-| 2.2 | Proof of wallet interactions | A table of address → tx hash → Stellar Expert link → action → timestamp. Plus a dashboard screenshot showing the count. | ⬜ | |
-| 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | ⬜ | |
+| 2.1 | Minimum 10 real users onboarded | ≥10 **distinct wallet addresses** that deposited. Aim for **20+** — some will be rejected as obviously self-generated. | ⬜ | 11 depositors indexed, **all self-generated** — funded minutes apart from the same faucet. Counts as plumbing proven, not as the requirement met. Real total: 0. |
+| 2.2 | Proof of wallet interactions | A table of address → tx hash → Stellar Expert link → action → timestamp. Plus a dashboard screenshot showing the count. | 🟡 | The mechanism is built and populated: `/asdfg/admin/users` lists every depositor with amount, first tx hash and a Stellar Expert link, read from the chain by the indexer. Waiting on real addresses to put in it. |
+| 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | 🟡 | In-app widget shipped — floating button, 1–5 rating, free text, stored in Postgres and surfaced at `/asdfg/admin/feedback` with an "actioned" column. **0 responses so far.** Whether the reviewer deposited is read from their on-chain history rather than self-reported. |
 
 ### Getting 10+ real users (the requirement most submissions fail)
 
@@ -105,28 +126,42 @@ collection is *mandatory*, and an in-app widget is visible proof in screenshots.
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 3.1 | Production deployment | Live on a real domain (Vercel + custom domain preferred over `*.vercel.app`). HTTPS. Uptime through the review window. | ⬜ | |
-| 3.2 | Monitoring + analytics | **PostHog** (funnels, events, sessions) **and** **Sentry** (error tracking + alerts), both live in production with real captured data. | 🟡 | Indexer live; PostHog/Sentry land with the frontend |
-| 3.3 | Optimized UX | Lighthouse ≥90 performance and ≥90 accessibility on mobile. First deposit in <2 min. No dead ends. | ⬜ | |
-| 3.4 | Project structure + docs | Monorepo per NEBULA.md §8. README with setup, architecture, contract addresses. Inline docs on every public contract function. | ⬜ | |
+| 3.1 | Production deployment | Live on a real domain (Vercel + custom domain preferred over `*.vercel.app`). HTTPS. Uptime through the review window. | 🟡 | Deployed to Vercel; database on Supabase, indexer on a GitHub Actions schedule. **Paste the URL here.** Still on `*.vercel.app` — a custom domain is a cheap upgrade the criteria explicitly prefer. |
+| 3.2 | Monitoring + analytics | **PostHog** (funnels, events, sessions) **and** **Sentry** (error tracking + alerts), both live in production with real captured data. | 🟡 | **PostHog live and verified** — first-party `/ingest` proxy so ad blockers do not silently eat the data, funnel instrumented, drop-off panel in admin joining it to on-chain depositors. **Sentry not installed.** "Real captured data" also still pending real traffic. |
+| 3.3 | Optimized UX | Lighthouse ≥90 performance and ≥90 accessibility on mobile. First deposit in <2 min. No dead ends. | ⬜ | Not measured. Run Lighthouse against the deployed URL and record both numbers — this is a measurement task, not a build task. |
+| 3.4 | Project structure + docs | Monorepo per NEBULA.md §8. README with setup, architecture, contract addresses. Inline docs on every public contract function. | ✅ | Root README covers setup, architecture, addresses, testing and security posture; `web/` and `indexer/` have their own. Every public contract function carries a doc comment explaining the reasoning, not just the signature. |
 
 ### Analytics events to instrument
 
 Instrument these on day one — you can't retroactively generate a funnel screenshot.
 
+**Shipped** (`lib/analytics.ts`, names are a compile-checked union so a typo cannot silently split
+a funnel in two):
+
 ```
-page_view              landing, dashboard, docs
-wallet_connect         { wallet: freighter | xbull | albedo | lobstr }
-wallet_connect_failed  { reason }
-deposit_initiated      { amount }
-deposit_signed
-deposit_confirmed      { amount, shares_minted, tx_hash }
-deposit_failed         { error_code }
-redeem_initiated       { shares }
-redeem_confirmed       { shares, xlm_out, tx_hash }
-feedback_submitted
-faucet_clicked
+wallet_connect_started  { wallet }
+wallet_connected        { wallet }
+wallet_connect_failed   { wallet, reason }
+deposit_submitted       { size }        ← size band, not an exact amount
+deposit_confirmed       { size }
+deposit_failed          { size, phase, reason }
+withdraw_submitted      { size }
+withdraw_confirmed      { size }
+withdraw_failed         { size, phase, reason }
+username_set
+review_submitted        { rating }
 ```
+
+Pageviews are captured automatically via `capture_pageview: "history_change"`, which follows
+client-side navigation — the default listener would record one view per session and miss every page
+after the first.
+
+Two deliberate departures from the sketch above. **No wallet address and no exact amount:** the
+privacy page promises analytics is not tied to your address, and an exact figure plus a timestamp
+identifies one transaction on a public ledger, so amounts go as bands (`<10`, `10-100`, `100-1k`).
+**`deposit_failed` carries the phase it died in** — `simulating`, `signing`, `submitting`,
+`confirming`. Backing out at the wallet prompt and the contract rejecting you look identical in a
+funnel and need opposite responses.
 
 **The funnel screenshot that sells the submission:**
 `page_view → wallet_connect → deposit_initiated → deposit_confirmed`, with drop-off percentages
@@ -146,9 +181,9 @@ you where your onboarding actually leaks — fix the biggest drop before submitt
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 4.1 | Contracts on Stellar testnet | Vault, nXLM token, Blend strategy all deployed; IDs in the README; verified on Stellar Expert. Full deposit → allocate → harvest → redeem cycle executed against the live Blend pool. | ✅ | [`deployments/testnet.json`](../deployments/testnet.json) |
-| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | 🟡 | 30 and counting |
-| 4.3 | Public GitHub repository | Public, with README, LICENSE, `.gitignore`, and no committed secrets. | ⬜ | Local only — not yet pushed |
+| 4.1 | Contracts on Stellar testnet | Vault, nXLM token, Blend strategy all deployed; IDs in the README; verified on Stellar Expert. Full deposit → allocate → harvest → redeem cycle executed against the live Blend pool. | 🟡 | All three deployed, IDs in the README with Stellar Expert links, full cycle executed against the real pool — see [`deployments/testnet.json`](../deployments/testnet.json). Held at 🟡 only because **the deployed build predates the security fixes**; redeploying settles this row and 1.2 together. |
+| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | ✅ | **62 commits**, every one Conventional Commits, zero `wip`/`update`/`fix stuff` subjects. Each carries the reasoning, so the log reads as a build history rather than a changelog. |
+| 4.3 | Public GitHub repository | Public, with README, LICENSE, `.gitignore`, and no committed secrets. | ✅ | [`solomonadzape95/nebula`](https://github.com/solomonadzape95/nebula) — public, Apache-2.0, `.gitignore` in place. Scanned every commit in history for real keys and connection strings: none. Live credentials sit in `.env.local` and platform env vars, and `.env.example` is the only env file tracked. |
 
 ### Commit discipline
 
@@ -182,8 +217,8 @@ work — 40 falls out naturally over three weeks.
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 5.1 | Live demo video | 3–5 min, screen recording with voiceover, showing the complete flow end to end. Unlisted YouTube or Loom. | ⬜ | |
-| 5.2 | Team review readiness | Prepared answers on technical complexity, product quality, architecture, real-world usefulness. | ⬜ | |
+| 5.1 | Live demo video | 3–5 min, screen recording with voiceover, showing the complete flow end to end. Unlisted YouTube or Loom. | ⬜ | Record after the redeploy, so the contracts on screen are the ones described here. |
+| 5.2 | Team review readiness | Prepared answers on technical complexity, product quality, architecture, real-world usefulness. | 🟡 | Most of the material now exists in writing — the README's Security section, the loss-recognition reasoning, and the Aquarius decision are all answers to likely questions. Still needs rehearsing rather than reading. |
 
 ### Demo video script (4 minutes)
 
@@ -215,17 +250,17 @@ scored requirement and a screenshot proves less than motion.
 
 | # | Item | Status | Link |
 |---|---|---|---|
-| 1 | Public GitHub repository | ⬜ | |
-| 2 | README with complete documentation | ⬜ | |
-| 3 | 15+ meaningful commits (target 40+) | ⬜ | |
-| 4 | Live demo link | ⬜ | |
-| 5 | Contract deployment addresses | ⬜ | |
+| 1 | Public GitHub repository | ✅ | [solomonadzape95/nebula](https://github.com/solomonadzape95/nebula) |
+| 2 | README with complete documentation | ✅ | [`README.md`](../README.md) |
+| 3 | 15+ meaningful commits (target 40+) | ✅ | 62, all Conventional Commits |
+| 4 | Live demo link | 🟡 | Deployed to Vercel — **paste the URL** |
+| 5 | Contract deployment addresses | ✅ | [`deployments/testnet.json`](../deployments/testnet.json) + README table |
 | 6 | Screenshot — product UI | ⬜ | |
 | 7 | Screenshot — mobile responsive design | ⬜ | |
-| 8 | Screenshot — analytics / monitoring setup | ⬜ | |
+| 8 | Screenshot — analytics / monitoring setup | ⬜ | Needs real traffic first, or the funnel is a row of zeros |
 | 9 | Demo video link | ⬜ | |
-| 10 | Proof of 10+ user wallet interactions | ⬜ | |
-| 11 | User feedback summary | ⬜ | |
+| 10 | Proof of 10+ user wallet interactions | ⬜ | Page built and populated; addresses are self-generated |
+| 11 | User feedback summary | ⬜ | Widget shipped, 0 responses |
 
 ### Screenshot shot list
 
@@ -276,6 +311,23 @@ Capture at 2x, crop tight, no browser chrome unless it adds context.
 **Weeks 4–5 are where submissions die.** Building is the fun part and it expands to fill the
 time; recruitment gets three panicked days at the end and yields four users. Hard-stop feature
 work at the end of week 4 and treat user acquisition as the deliverable it is.
+
+### Where this actually is
+
+Weeks 1–3 are done and week 4 is nearly done: contracts, strategy layer, testnet deploy, the full
+frontend, polish, the indexer, and PostHog are all shipped. Week 4's exit condition is one item
+short — Sentry — plus the redeploy owed from the security pass.
+
+**The week-5 work has not started, and it is the work that decides this.** Zero external users, zero
+feedback responses. Everything built since is only worth what someone else's hands make of it. The
+ordered path from here:
+
+1. **Redeploy the contracts** with the security fixes. Starts the stability clock and makes the
+   documentation true.
+2. **Install Sentry.** Half an hour, and it closes 3.2.
+3. **Fill in the deployment URL** in 3.1 and checklist item 4, and put a custom domain on it.
+4. **Recruit.** Everything above is prologue; this is the deliverable.
+5. Screenshots and the demo video last, once the funnel has real numbers in it.
 
 ---
 
