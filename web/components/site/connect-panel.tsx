@@ -11,12 +11,6 @@ import { Logo } from "@/components/site/logo";
 import { DURATION, ENTER } from "@/lib/easing";
 import { WALLETS, type Wallet } from "@/lib/wallets";
 
-const STEPS = [
-  { n: 1, title: "Connect a wallet", body: "Your wallet is your account. Nothing to sign up for." },
-  { n: 2, title: "Get testnet XLM", body: "Free from the faucet. It has no real value." },
-  { n: 3, title: "Deposit and earn", body: "Receive nXLM. Watch the price climb." },
-];
-
 type Status = { wallet: string; state: "connecting" | "failed" } | null;
 
 export function ConnectPanel() {
@@ -33,14 +27,24 @@ export function ConnectPanel() {
     <div className="grid min-h-svh lg:grid-cols-[1.05fr_1fr]">
       <Aside />
 
-      <main className="relative flex items-center justify-center px-5 py-16 sm:px-10 lg:py-20">
+      <main className="relative flex items-center justify-center px-5 py-12 sm:px-10 lg:py-16">
         <div className="w-full max-w-md">
-          <Link
-            href="/"
-            className="mb-10 inline-flex items-center gap-2 font-mono text-xs tracking-wider text-ink-faint uppercase transition-colors hover:text-ink lg:hidden"
-          >
-            <ArrowLeft size={14} /> Back
-          </Link>
+          {/* The lockup lives on this side, not over the shader: it belongs with the thing you
+              are here to do, and this is the only column that exists on a phone. */}
+          <div className="mb-12 flex items-center justify-between gap-4">
+            <Link href="/" className="brand flex items-center gap-3.5">
+              <Logo size={34} cell={1.8} className="brand-mark text-signal" />
+              <span className="brand-name font-mono text-base tracking-[0.2em] uppercase">
+                Nebula
+              </span>
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 font-mono text-xs tracking-wider text-ink-faint uppercase transition-colors hover:text-ink"
+            >
+              <ArrowLeft size={14} /> Back
+            </Link>
+          </div>
 
           <h1 className="text-3xl font-medium tracking-tight text-balance text-ink sm:text-4xl">
             Connect your wallet
@@ -111,14 +115,15 @@ export function ConnectPanel() {
 }
 
 /**
- * The left half: the sphere field with the journey laid over it.
+ * The left half: the sphere field carrying the same promise the landing page opens with.
  *
- * Hidden below `lg` rather than stacked. On a phone it would push the actual task, choosing a
- * wallet, below the fold behind a decorative panel.
+ * No border, so the shader runs to the edge of the viewport and the two halves meet on a change
+ * of content rather than a drawn line. Hidden below `lg` rather than stacked, because on a phone
+ * it would push the actual task below a decorative panel.
  */
 function Aside() {
   return (
-    <aside className="scanlines relative hidden overflow-hidden border-r border-edge lg:flex lg:flex-col">
+    <aside className="scanlines relative hidden overflow-hidden lg:flex lg:items-center">
       <DitherField
         variant="blackhole"
         className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-[130vh] -translate-x-1/2 -translate-y-1/2"
@@ -130,53 +135,20 @@ function Aside() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(7,8,10,0.85) 0%, rgba(7,8,10,0.45) 50%, transparent 82%)",
+            "radial-gradient(ellipse 72% 58% at 50% 50%, rgba(7,8,10,0.86) 0%, rgba(7,8,10,0.45) 52%, transparent 84%)",
         }}
       />
 
-      <div className="relative flex flex-1 flex-col justify-between p-12 xl:p-16">
-        <Link href="/" className="brand flex w-fit items-center gap-3.5">
-          <Logo size={34} cell={1.8} className="brand-mark text-signal" />
-          <span className="brand-name font-mono text-base tracking-[0.2em] uppercase">Nebula</span>
-        </Link>
-
-        <div className="max-w-md">
-          <h2 className="text-4xl leading-[1.05] font-medium tracking-tight text-balance text-ink xl:text-5xl">
-            Three minutes from here to earning.
-          </h2>
-
-          <ol className="mt-12 space-y-px border border-edge bg-edge">
-            {STEPS.map((step, i) => (
-              <li
-                key={step.n}
-                className={`flex items-start gap-5 p-6 ${
-                  i === 0 ? "bg-raised" : "bg-void/70 backdrop-blur-sm"
-                }`}
-              >
-                <span
-                  className={`flex size-8 shrink-0 items-center justify-center font-mono text-sm ${
-                    i === 0 ? "bg-signal text-void" : "border border-edge text-ink-faint"
-                  }`}
-                >
-                  {step.n}
-                </span>
-                <span>
-                  <span className={`block text-base ${i === 0 ? "text-ink" : "text-ink-dim"}`}>
-                    {step.title}
-                  </span>
-                  <span className="mt-1 block text-sm text-ink-faint">{step.body}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <Link
-          href="/"
-          className="inline-flex w-fit items-center gap-2 font-mono text-xs tracking-wider text-ink-faint uppercase transition-colors hover:text-ink"
-        >
-          <ArrowLeft size={14} /> Back to site
-        </Link>
+      <div className="relative w-full p-12 xl:p-20">
+        <h2 className="max-w-lg text-5xl leading-[1.02] font-medium tracking-tight text-balance text-ink xl:text-6xl">
+          Earn on your XLM.
+          <br />
+          Keep it liquid.
+        </h2>
+        <p className="mt-8 max-w-md text-lg leading-relaxed text-ink-dim">
+          Deposit XLM and receive nXLM. It grows in value every day, and stays tradeable and
+          spendable the whole time.
+        </p>
       </div>
     </aside>
   );
