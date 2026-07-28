@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { DURATION, ENTER, EXIT, MORPH_SPRING, SETTLE } from "@/lib/easing";
 
@@ -49,8 +49,15 @@ const PAGES: Item[] = [
  * `layoutRoot` is required because the panel is `position: fixed`; without it Motion measures
  * against the scrolled document and the morph starts from the wrong place.
  */
-export function Menu() {
-  const [open, setOpen] = useState(false);
+export function Menu({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  // State lives in the navbar so the bar can drop its own background while the menu is open.
+  const setOpen = onOpenChange;
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +73,7 @@ export function Menu() {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   return (
     <>

@@ -5,12 +5,6 @@ import { useEffect, useState } from "react";
 
 import { Menu } from "@/components/site/menu";
 
-const LINKS = [
-  { href: "#how", label: "How it works" },
-  { href: "#nxlm", label: "nXLM" },
-  { href: "#yield", label: "Yield" },
-];
-
 /** Ignore sub-pixel jitter and momentum wobble at the top of the page. */
 const THRESHOLD = 8;
 /** Below this the hero owns the screen, so the bar stays invisible and unbacked. */
@@ -19,6 +13,7 @@ const HERO_ZONE = 120;
 export function Nav() {
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let previous = window.scrollY;
@@ -41,36 +36,38 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // While the menu is open the bar drops its background entirely. A translucent blurred strip
+  // sitting under the scrim still reads as a visible band across the top of the overlay, and no
+  // amount of z-index fixes that: the fix is for there to be no strip.
+  const backed = scrolled && !menuOpen;
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-transform duration-300 ease-out ${
-        hidden ? "-translate-y-full" : "translate-y-0"
-      } ${scrolled ? "border-b border-edge/70 bg-void/80 backdrop-blur-xl" : "border-b border-transparent"}`}
+        hidden && !menuOpen ? "-translate-y-full" : "translate-y-0"
+      }`}
     >
-      <nav className="mx-auto flex h-18 max-w-app items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-3">
+      <div
+        aria-hidden
+        className={`absolute inset-0 border-b transition-opacity duration-300 ${
+          backed
+            ? "border-edge/70 bg-void/80 opacity-100 backdrop-blur-xl"
+            : "border-transparent opacity-0"
+        }`}
+      />
+
+      <nav className="relative mx-auto flex h-18 max-w-app items-center justify-between px-5 sm:px-8">
+        <Link
+          href="/"
+          className={`flex items-center gap-3 transition-opacity duration-200 ${
+            menuOpen ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+        >
           <Mark />
           <span className="font-mono text-lg tracking-[0.2em] uppercase">Nebula</span>
         </Link>
 
-        <div className="hidden items-center gap-9 md:flex">
-          {LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="font-mono text-sm tracking-wider text-ink-dim uppercase transition-colors hover:text-ink"
-            >
-              {link.label}
-            </a>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link href="/app" className="btn btn-primary !px-5 !py-2.5 !text-sm">
-            Launch app
-          </Link>
-          <Menu />
-        </div>
+        <Menu open={menuOpen} onOpenChange={setMenuOpen} />
       </nav>
     </header>
   );

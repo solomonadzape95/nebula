@@ -53,9 +53,6 @@
   --text-display: clamp(3rem, 8.5vw, 7.5rem);
   --text-headline: clamp(2.5rem, 5vw, 4.25rem);
   --text-statement: clamp(1.875rem, 3.8vw, 3.5rem);
-  /* The footer wordmark. Deliberately wider than the viewport so the final letters run off the
-     right edge: the name reads as a printed mark rather than a centred logo. */
-  --text-wordmark: clamp(6rem, 27vw, 30rem);
 }
 
 @layer base {

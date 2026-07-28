@@ -357,17 +357,13 @@ function Footer() {
         </div>
       </div>
 
-      {/* The wordmark sits directly on the photograph with no panel behind it, punched through
-          the same halftone lattice as every other mark on the site. It is set wider than the
-          viewport on purpose so the last letters run off the right edge. */}
-      <div className="relative">
-        <p
-          aria-hidden
-          className="dither-mask pb-4 pl-5 leading-[0.72] font-medium tracking-[-0.055em] whitespace-nowrap text-signal select-none sm:pl-8"
-          style={{ fontSize: "var(--text-wordmark)" }}
-        >
-          nebula
-        </p>
+      <div className="relative mx-auto w-full max-w-app px-5 pb-8 sm:px-8">
+        <div className="flex flex-col gap-4 border-t border-edge/60 pt-7 sm:flex-row sm:items-center sm:justify-between">
+          <span className="font-mono text-sm tracking-[0.2em] text-ink-dim uppercase">Nebula</span>
+          <span className="font-mono text-xs text-ink-faint">
+            © {new Date().getFullYear()} Nebula. All rights reserved, all wrongs pardoned.
+          </span>
+        </div>
       </div>
     </footer>
   );
