@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 
-import { ROLL_SPRING } from "@/lib/easing";
+import { DURATION, SETTLE } from "@/lib/easing";
 
 /**
  * An odometer. Each character sits in its own slot; when it changes, the new one rises from below
@@ -39,13 +39,19 @@ export function RollingNumber({ value, className }: { value: string; className?:
             // sideways on every tick. `ch` is the width of a figure in a monospace face.
             style={{ width: "1ch", height: "1.1em" }}
           >
-            <AnimatePresence initial={false} mode="popLayout">
+            {/*
+              No `popLayout`: both spans are absolutely positioned and already overlap, so
+              popLayout only added a layout projection step, and that plus a spring was what made
+              the roll feel mechanical. A soft decelerating tween with the outgoing digit fading
+              as it leaves is much closer to ink than to a slot machine.
+            */}
+            <AnimatePresence initial={false}>
               <motion.span
                 key={char}
-                initial={{ y: "100%" }}
-                animate={{ y: "0%" }}
-                exit={{ y: "-100%" }}
-                transition={ROLL_SPRING}
+                initial={{ y: "85%", opacity: 0 }}
+                animate={{ y: "0%", opacity: 1 }}
+                exit={{ y: "-85%", opacity: 0 }}
+                transition={{ duration: DURATION.slow, ease: SETTLE }}
                 className="absolute inset-0 flex items-center justify-center"
               >
                 {char}

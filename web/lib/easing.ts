@@ -35,11 +35,3 @@ export const MORPH_SPRING = {
   damping: 30,
   mass: 0.9,
 } as const;
-
-/** Digits rolling in a number. Tight and slightly springy so it reads as mechanical. */
-export const ROLL_SPRING = {
-  type: "spring",
-  stiffness: 380,
-  damping: 34,
-  mass: 0.7,
-} as const;

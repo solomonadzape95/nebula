@@ -15,7 +15,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
-import { DURATION, ENTER, EXIT, MORPH_SPRING, SETTLE } from "@/lib/easing";
+import { DURATION, ENTER, EXIT, MORPH_SPRING } from "@/lib/easing";
 
 interface Item {
   href: string;
@@ -37,17 +37,18 @@ const PAGES: Item[] = [
 ];
 
 /**
- * The trigger and the panel share a `layoutId`, so the panel grows out of the button.
+ * The panel expands out of the trigger's top-right corner.
  *
- * The arrangement matters and is the one Motion documents: the trigger lives **outside**
- * `AnimatePresence` and stays mounted forever, while only the panel is conditionally rendered
- * inside it. Putting both inside their own `AnimatePresence` — the obvious-looking version — gives
- * two separate presence trees that cannot hand off to each other, so the morph silently degrades
- * into a cross-fade. Keeping the trigger mounted also means the navbar never reflows when the menu
- * opens, because nothing is removed from its layout.
+ * This deliberately does *not* use `layoutId`. A shared-layout morph between a 48px button and a
+ * full panel left the trigger's border painted underneath as an empty box, and interpolating
+ * wildly different aspect ratios distorted the contents on the way. Scaling from a pinned
+ * `transformOrigin` gives the same "it grew from the button" reading with none of that, and the
+ * trigger simply fades out as the panel arrives.
  *
- * `layoutRoot` is required because the panel is `position: fixed`; without it Motion measures
- * against the scrolled document and the morph starts from the wrong place.
+ * Each `AnimatePresence` wraps exactly one keyed motion element. Putting the scrim and panel
+ * together inside a fragment — the arrangement this previously had — gives AnimatePresence a
+ * fragment as its child, which it cannot track: exit animations never fire, the elements never
+ * unmount, and the menu stops responding to Escape and outside clicks.
  */
 export function Menu({
   open,
@@ -56,100 +57,91 @@ export function Menu({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  // State lives in the navbar so the bar can drop its own background while the menu is open.
-  const setOpen = onOpenChange;
-
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") onOpenChange(false);
     };
     window.addEventListener("keydown", onKey);
 
-    // Locking the body removes the scrollbar, which on a stable-gutter browser is free but
-    // otherwise shifts the page. `scrollbar-gutter: stable` in globals.css reserves the space.
+    // Locking the body would reclaim the scrollbar width; `scrollbar-gutter: stable` in
+    // globals.css reserves it so the page does not shift sideways.
     document.body.style.overflow = "hidden";
+
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, setOpen]);
+  }, [open, onOpenChange]);
 
   return (
     <>
       <motion.button
-        layoutId="menu-surface"
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => onOpenChange(true)}
         aria-label="Open menu"
         aria-expanded={open}
-        transition={MORPH_SPRING}
-        style={{ borderRadius: 2 }}
+        animate={{ opacity: open ? 0 : 1, scale: open ? 0.85 : 1 }}
+        transition={{ duration: DURATION.fast, ease: ENTER }}
         className="flex size-12 items-center justify-center border border-edge bg-void/60 text-ink-dim backdrop-blur-sm transition-colors hover:border-ink-faint hover:text-ink"
+        style={{ pointerEvents: open ? "none" : "auto" }}
       >
-        <motion.span layoutId="menu-glyph" transition={MORPH_SPRING}>
-          <MenuIcon size={22} strokeWidth={2} />
-        </motion.span>
+        <MenuIcon size={22} strokeWidth={2} />
       </motion.button>
 
       <AnimatePresence>
         {open && (
-          <>
-            <motion.div
-              key="scrim"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: DURATION.base, ease: EXIT }}
-              onClick={() => setOpen(false)}
-              className="fixed inset-0 z-60 bg-void/80 backdrop-blur-sm"
-            />
+          <motion.div
+            key="scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: DURATION.base, ease: EXIT }}
+            onClick={() => onOpenChange(false)}
+            className="fixed inset-0 z-60 bg-void/80 backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
 
-            <motion.div
-              key="panel"
-              layoutId="menu-surface"
-              layoutRoot
-              transition={MORPH_SPRING}
-              style={{ borderRadius: 2 }}
-              className="panel fixed top-4 right-4 z-70 w-[min(92vw,30rem)] overflow-hidden sm:top-5 sm:right-6"
-            >
-              <div className="flex items-center justify-end px-6 pt-5">
-                <motion.button
-                  layoutId="menu-glyph"
-                  transition={MORPH_SPRING}
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close menu"
-                  className="text-ink-dim transition-colors hover:text-ink"
-                >
-                  <X size={28} strokeWidth={2} />
-                </motion.button>
-              </div>
-
-              {/* Content fades in after the box has finished travelling, so the two animations do
-                  not compete for attention. */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, transition: { duration: DURATION.fast, ease: EXIT } }}
-                transition={{ delay: 0.1, duration: DURATION.slow, ease: SETTLE }}
-                className="p-4 pt-2 pb-6"
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="panel"
+            initial={{ opacity: 0, scale: 0.82 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: DURATION.fast, ease: EXIT } }}
+            transition={MORPH_SPRING}
+            // Pinned to the trigger's corner so the growth reads as coming from the button.
+            style={{ transformOrigin: "top right" }}
+            className="panel absolute top-0 right-0 z-70 w-[min(86vw,27rem)] origin-top-right overflow-hidden"
+          >
+            <div className="flex items-center justify-end px-6 pt-4">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                aria-label="Close menu"
+                className="flex size-12 items-center justify-center text-ink-dim transition-colors hover:text-ink"
               >
-                <Group title="This page" items={SECTIONS} onNavigate={() => setOpen(false)} />
-                <Group title="More" items={PAGES} onNavigate={() => setOpen(false)} />
+                <X size={28} strokeWidth={2} />
+              </button>
+            </div>
 
-                <div className="mt-4 border-t border-edge px-3 pt-6">
-                  <Link
-                    href="/app"
-                    onClick={() => setOpen(false)}
-                    className="btn btn-primary w-full !py-4 !text-base"
-                  >
-                    Launch app
-                  </Link>
-                </div>
-              </motion.div>
-            </motion.div>
-          </>
+            <div className="p-4 pt-1 pb-6">
+              <Group title="This page" items={SECTIONS} onNavigate={() => onOpenChange(false)} />
+              <Group title="More" items={PAGES} onNavigate={() => onOpenChange(false)} />
+
+              <div className="mt-4 border-t border-edge px-3 pt-6">
+                <Link
+                  href="/app"
+                  onClick={() => onOpenChange(false)}
+                  className="btn btn-primary w-full !py-4 !text-base"
+                >
+                  Launch app
+                </Link>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
@@ -196,7 +188,7 @@ function MenuRow({
       onClick={onNavigate}
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.14 + index * 0.035, duration: DURATION.base, ease: ENTER }}
+      transition={{ delay: 0.08 + index * 0.03, duration: DURATION.base, ease: ENTER }}
       whileHover="hover"
       whileFocus="hover"
       whileTap={{ scale: 0.985 }}

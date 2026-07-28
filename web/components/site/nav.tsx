@@ -68,13 +68,22 @@ export function Nav() {
         </nav>
       </header>
 
-      {/* Its own fixed layer, aligned to where it would sit inside the bar. */}
+      {/*
+        Its own fixed layer so the header can be hidden without disturbing it, but laid out
+        through the same `max-w-app` container as the wordmark. Pinning it to the viewport edge
+        instead pushed it into the far corner on wide screens, well outside the page's own margin.
+        The row is click-through; only the button and the panel inside it take pointer events.
+      */}
       <div
-        className={`fixed top-3 right-5 z-50 transition-transform duration-300 ease-out sm:right-8 ${
-          hidden && !menuOpen ? "-translate-y-[5rem]" : "translate-y-0"
+        className={`pointer-events-none fixed inset-x-0 top-3 z-50 transition-transform duration-300 ease-out ${
+          hidden && !menuOpen ? "-translate-y-[5.5rem]" : "translate-y-0"
         }`}
       >
-        <Menu open={menuOpen} onOpenChange={setMenuOpen} />
+        <div className="mx-auto flex max-w-app justify-end px-5 sm:px-8">
+          <div className="pointer-events-auto relative">
+            <Menu open={menuOpen} onOpenChange={setMenuOpen} />
+          </div>
+        </div>
       </div>
     </>
   );
