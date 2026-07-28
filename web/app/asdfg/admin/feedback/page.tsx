@@ -1,5 +1,7 @@
 import { MessageSquare } from "lucide-react";
 
+import { Icon } from "@/components/ui/icon";
+
 import { DitherAvatar } from "@/components/dither-kit/avatar";
 
 import { explorerAccount, shortAddress } from "@/lib/contracts";
@@ -160,7 +162,7 @@ function Tag({ label, tone = "default" }: { label: string; tone?: "default" | "s
 function EmptyState() {
   return (
     <div className="panel mt-10 flex flex-col items-center px-7 py-16 text-center">
-      <MessageSquare size={28} className="text-ink-faint" strokeWidth={2} />
+      <Icon icon={MessageSquare} size={28} className="text-ink-faint" strokeWidth={2} />
       <h2 className="mt-6 text-xl font-medium tracking-tight text-ink">No responses yet</h2>
       <p className="mt-3 max-w-md text-base leading-relaxed text-ink-dim">
         The review button is live on every app screen. Ask testers right after they complete a

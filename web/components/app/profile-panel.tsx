@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, Copy, Wallet } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -186,7 +188,7 @@ export function ProfilePanel() {
                 transition={{ duration: DURATION.base, ease: ENTER }}
                 className="mt-5 flex items-center gap-2 border border-signal-dim/40 bg-signal/[0.05] px-4 py-3 text-sm text-ink"
               >
-                <Check size={15} className="text-signal" strokeWidth={2.5} /> Saved.
+                <Icon icon={Check} size={15} className="text-signal" strokeWidth={2.5} /> Saved.
               </motion.p>
             )}
           </AnimatePresence>
@@ -209,7 +211,7 @@ export function ProfilePanel() {
             <p className="mt-4 font-mono text-sm break-all text-ink-dim">{address}</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={copy} className="btn btn-ghost w-full sm:w-auto">
-                {copied ? <Check size={15} /> : <Copy size={15} />}
+                {copied ? <Icon icon={Check} size={15} /> : <Icon icon={Copy} size={15} />}
                 {copied ? "Copied" : "Copy address"}
               </button>
               <a
@@ -218,7 +220,7 @@ export function ProfilePanel() {
                 rel="noreferrer"
                 className="btn btn-ghost w-full sm:w-auto"
               >
-                Explorer <ArrowUpRight size={14} />
+                Explorer <Icon icon={ArrowUpRight} size={14} />
               </a>
             </div>
             <p className="mt-6 text-sm leading-relaxed text-ink-faint">
@@ -260,7 +262,7 @@ function Disconnected() {
   return (
     <div className="mx-auto max-w-app px-5 py-20 sm:px-8">
       <div className="panel mx-auto flex max-w-md flex-col items-center px-7 py-14 text-center">
-        <Wallet size={28} className="text-ink-faint" strokeWidth={2} />
+        <Icon icon={Wallet} size={28} className="text-ink-faint" strokeWidth={2} />
         <h1 className="mt-6 text-2xl font-medium tracking-tight text-ink">No wallet connected</h1>
         <p className="mt-3 text-base leading-relaxed text-ink-dim">
           Your profile is tied to your wallet address, so there is nothing to show until one is

@@ -1,5 +1,7 @@
 import { ArrowUpRight, Download } from "lucide-react";
 
+import { Icon } from "@/components/ui/icon";
+
 import { DataNotice } from "@/components/site/data-notice";
 import { explorerAccount, explorerTx, shortAddress } from "@/lib/contracts";
 import { formatStroops, shortDate } from "@/lib/format";
@@ -39,7 +41,7 @@ export default async function AdminUsersPage() {
           </p>
         </div>
         <button type="button" className="btn btn-ghost w-full sm:w-auto">
-          <Download size={15} /> Export CSV
+          <Icon icon={Download} size={15} /> Export CSV
         </button>
       </div>
 
@@ -152,7 +154,7 @@ function DepositorTable({ rows }: { rows: Depositor[] }) {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 font-mono text-xs text-ink-faint transition-colors hover:text-signal"
                   >
-                    {d.firstTxHash.slice(0, 8)}… <ArrowUpRight size={12} />
+                    {d.firstTxHash.slice(0, 8)}… <Icon icon={ArrowUpRight} size={12} />
                   </a>
                 </td>
               </tr>
@@ -186,7 +188,7 @@ function DepositorTable({ rows }: { rows: Depositor[] }) {
               rel="noreferrer"
               className="mt-4 inline-flex items-center gap-1 font-mono text-xs text-ink-faint transition-colors hover:text-signal"
             >
-              {d.firstTxHash.slice(0, 12)}… <ArrowUpRight size={12} />
+              {d.firstTxHash.slice(0, 12)}… <Icon icon={ArrowUpRight} size={12} />
             </a>
           </div>
         ))}

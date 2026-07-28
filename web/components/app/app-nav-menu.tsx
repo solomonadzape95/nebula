@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronDown } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -63,9 +65,9 @@ export function AppNavMenu({ items, pathname }: { items: NavItem[]; pathname: st
         aria-expanded={open}
         className="flex items-center gap-2.5 border border-edge px-3.5 py-2.5 text-ink-dim transition-colors hover:border-ink-faint hover:text-ink md:hidden"
       >
-        <current.icon size={15} strokeWidth={2} className="text-signal" />
+        <Icon icon={current.icon} size={16} className="text-signal" />
         <span className="font-mono text-xs tracking-wider uppercase">{current.label}</span>
-        <ChevronDown size={14} strokeWidth={2} className="text-ink-faint" />
+        <Icon icon={ChevronDown} size={14} strokeWidth={2} className="text-ink-faint" />
       </button>
 
       {typeof document !== "undefined" &&
@@ -125,15 +127,15 @@ export function AppNavMenu({ items, pathname }: { items: NavItem[]; pathname: st
                                 active ? "bg-raised text-signal" : "text-ink-dim hover:bg-raised"
                               }`}
                             >
-                              <item.icon
+                              <Icon
+                                icon={item.icon}
                                 size={20}
-                                strokeWidth={2}
                                 className={active ? "text-signal" : "text-ink-faint"}
                               />
                               <span className="flex-1 font-mono text-sm tracking-wider uppercase">
                                 {item.label}
                               </span>
-                              {active && <Check size={16} strokeWidth={2.5} />}
+                              {active && <Icon icon={Check} size={16} strokeWidth={2.5} />}
                             </Link>
                           </motion.div>
                         );

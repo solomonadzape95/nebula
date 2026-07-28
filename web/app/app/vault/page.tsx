@@ -1,5 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 
+import { Icon } from "@/components/ui/icon";
+
 import { AllocationBar } from "@/components/site/allocation-bar";
 import { DataNotice } from "@/components/site/data-notice";
 import {
@@ -144,7 +146,7 @@ function Holding({
         rel="noreferrer"
         className="mt-6 inline-flex items-center gap-1.5 font-mono text-xs text-ink-faint transition-colors hover:text-signal"
       >
-        {shortAddress(id, 6, 6)} <ArrowUpRight size={13} />
+        {shortAddress(id, 6, 6)} <Icon icon={ArrowUpRight} size={13} />
       </a>
     </div>
   );

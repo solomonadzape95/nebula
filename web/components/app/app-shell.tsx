@@ -14,6 +14,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AppNavMenu } from "@/components/app/app-nav-menu";
+import { Icon } from "@/components/ui/icon";
+import { BalancesProvider } from "@/components/app/balances";
 import { IdentityProvider } from "@/components/app/identity";
 import { ProfileMenu } from "@/components/app/profile-menu";
 import { ReviewLink, ReviewProvider } from "@/components/app/review";
@@ -52,13 +54,15 @@ export function AppShell({
   const items = admin ? ADMIN_NAV : APP_NAV;
 
   return (
-    <IdentityProvider>
-      <ReviewProvider>
-        <Shell admin={admin} items={items} pathname={pathname}>
-          {children}
-        </Shell>
-      </ReviewProvider>
-    </IdentityProvider>
+    <BalancesProvider>
+      <IdentityProvider>
+        <ReviewProvider>
+          <Shell admin={admin} items={items} pathname={pathname}>
+            {children}
+          </Shell>
+        </ReviewProvider>
+      </IdentityProvider>
+    </BalancesProvider>
   );
 }
 
@@ -117,23 +121,7 @@ function Shell({
                     : "border-transparent text-ink-faint hover:text-ink"
                 }`}
               >
-                <span
-                  className={active ? "" : "opacity-90"}
-                  style={
-                    active
-                      ? undefined
-                      : {
-                          WebkitMaskImage:
-                            "radial-gradient(circle at 1px 1px, #000 0.85px, transparent 0)",
-                          maskImage:
-                            "radial-gradient(circle at 1px 1px, #000 0.85px, transparent 0)",
-                          WebkitMaskSize: "2px 2px",
-                          maskSize: "2px 2px",
-                        }
-                  }
-                >
-                  <item.icon size={16} strokeWidth={active ? 2 : 2.5} />
-                </span>
+                <Icon icon={item.icon} size={16} />
                 {item.label}
               </Link>
             );

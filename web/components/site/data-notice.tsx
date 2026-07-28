@@ -1,4 +1,7 @@
 import { AlertTriangle, Radio } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 
 import { shortDate } from "@/lib/format";
 
@@ -50,11 +53,11 @@ export function DataNotice({
 
 function Banner({
   tone,
-  icon: Icon,
+  icon: glyph,
   children,
 }: {
   tone: "signal" | "ember";
-  icon: React.ElementType;
+  icon: LucideIcon;
   children: React.ReactNode;
 }) {
   const border = tone === "signal" ? "border-signal-dim/30 bg-signal/[0.04]" : "border-ember/25 bg-ember/[0.06]";
@@ -62,7 +65,7 @@ function Banner({
 
   return (
     <div className={`flex items-start gap-3 border px-5 py-4 ${border}`}>
-      <Icon size={18} className={`mt-0.5 shrink-0 ${color}`} strokeWidth={2} />
+      <Icon icon={glyph} size={18} className={`mt-0.5 shrink-0 ${color}`} />
       <p className="text-sm leading-relaxed text-ink-dim">{children}</p>
     </div>
   );

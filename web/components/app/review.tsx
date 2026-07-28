@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Check, MessageSquare, X } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import { createContext, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -101,7 +103,7 @@ function FloatingTrigger({ visible, onClick }: { visible: boolean; onClick: () =
                 maskSize: "2.5px 2.5px",
               }}
             >
-              <MessageSquare size={24} strokeWidth={2.5} />
+              <Icon icon={MessageSquare} size={24} strokeWidth={2.5} />
             </motion.span>
 
             {/* Hover: solid, signal, lifted. */}
@@ -111,7 +113,7 @@ function FloatingTrigger({ visible, onClick }: { visible: boolean; onClick: () =
               transition={MORPH_SPRING}
               className="absolute text-signal"
             >
-              <MessageSquare size={24} strokeWidth={2} />
+              <Icon icon={MessageSquare} size={24} strokeWidth={2} />
             </motion.span>
           </span>
         </motion.button>
@@ -191,13 +193,13 @@ function ReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                   aria-label="Close"
                   className="text-ink-dim transition-colors hover:text-ink"
                 >
-                  <X size={22} strokeWidth={2} />
+                  <Icon icon={X} size={22} strokeWidth={2} />
                 </button>
               </div>
 
               {done ? (
                 <div className="flex flex-col items-center px-6 py-14 text-center">
-                  <Check size={30} className="text-signal" strokeWidth={2.5} />
+                  <Icon icon={Check} size={30} className="text-signal" strokeWidth={2.5} />
                   <p className="mt-5 text-lg text-ink">Thank you.</p>
                   <p className="mt-2 text-sm text-ink-dim">
                     Genuinely read, and acted on where we can.

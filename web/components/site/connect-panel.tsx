@@ -3,8 +3,11 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { DitherField } from "@/components/shader/dither-field";
 import { DitherSpinner } from "@/components/ui/dither-loader";
@@ -18,6 +21,13 @@ import { WALLETS, type Wallet } from "@/lib/wallets";
 export function ConnectPanel() {
   const router = useRouter();
   const { address, status, error, connect, disconnect, walletId } = useWallet();
+
+  // A restored session never runs `connect`, so landing here already connected used to park the
+  // visitor on a dead-end card. Send them on to wherever they were headed instead.
+  useEffect(() => {
+    if (!address) return;
+    router.replace(isAdminAddress(address) ? ADMIN_ROOT : "/app");
+  }, [address, router]);
 
   const onSelect = async (wallet: Wallet) => {
     const walletAddress = await connect(wallet.id);
@@ -46,7 +56,7 @@ export function ConnectPanel() {
               href="/"
               className="inline-flex items-center gap-1.5 font-mono text-xs tracking-wider text-ink-faint uppercase transition-colors hover:text-ink"
             >
-              <ArrowLeft size={14} /> Back
+              <Icon icon={ArrowLeft} size={14} /> Back
             </Link>
           </div>
 
@@ -118,7 +128,7 @@ export function ConnectPanel() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-signal underline-offset-4 hover:underline"
               >
-                Start with Freighter <ExternalLink size={13} />
+                Start with Freighter <Icon icon={ExternalLink} size={13} />
               </a>
             </p>
             <p className="text-sm leading-relaxed text-ink-dim">
@@ -129,7 +139,7 @@ export function ConnectPanel() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-signal underline-offset-4 hover:underline"
               >
-                The faucet gives it away free <ExternalLink size={13} />
+                The faucet gives it away free <Icon icon={ExternalLink} size={13} />
               </a>
             </p>
           </div>
@@ -226,7 +236,7 @@ function WalletRow({
         {status === "connecting" ? (
           <DitherSpinner size={20} />
         ) : (
-          <ArrowUpRight
+          <Icon icon={ArrowUpRight}
             size={18}
             className="transition-colors group-hover:text-signal"
             strokeWidth={2}

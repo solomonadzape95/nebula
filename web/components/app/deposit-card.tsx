@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ArrowUpRight, Check, Wallet } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -288,7 +290,7 @@ export function DepositCard({
               className="mt-5 border border-signal-dim/40 bg-signal/[0.05] px-4 py-3"
             >
               <p className="flex items-center gap-2 text-sm text-ink">
-                <Check size={15} className="text-signal" strokeWidth={2.5} />
+                <Icon icon={Check} size={15} className="text-signal" strokeWidth={2.5} />
                 Confirmed on Stellar.
               </p>
               <a
@@ -297,7 +299,7 @@ export function DepositCard({
                 rel="noreferrer"
                 className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-signal underline-offset-4 hover:underline"
               >
-                {txHash.slice(0, 16)}… <ArrowUpRight size={12} />
+                {txHash.slice(0, 16)}… <Icon icon={ArrowUpRight} size={12} />
               </a>
             </motion.div>
           )}
@@ -334,7 +336,7 @@ function DisconnectedCard() {
           maskSize: "2.5px 2.5px",
         }}
       >
-        <Wallet size={26} strokeWidth={2} />
+        <Icon icon={Wallet} size={26} strokeWidth={2} />
       </span>
 
       <h2 className="mt-8 text-2xl font-medium tracking-tight text-ink">Connect to get started</h2>
@@ -344,7 +346,7 @@ function DisconnectedCard() {
       </p>
 
       <Link href="/connect" className="btn btn-primary mt-9 w-full !py-4 sm:w-auto">
-        Connect wallet <ArrowRight size={16} />
+        Connect wallet <Icon icon={ArrowRight} size={16} />
       </Link>
 
       <Link

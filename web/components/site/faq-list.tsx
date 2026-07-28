@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Plus } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import { useState } from "react";
 
 import { DURATION, ENTER, SETTLE } from "@/lib/easing";
@@ -42,7 +44,7 @@ export function FaqList({ items }: { items: FaqItem[] }) {
                 transition={{ duration: DURATION.base, ease: ENTER }}
                 className="mt-1 shrink-0"
               >
-                <Plus size={22} strokeWidth={2} />
+                <Icon icon={Plus} size={22} strokeWidth={2} />
               </motion.span>
             </button>
 

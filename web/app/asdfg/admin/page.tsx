@@ -1,4 +1,7 @@
 import { ArrowUpRight, MessageSquare, ShieldCheck, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
 
 import { Sparkline } from "@/components/dither-kit/sparkline";
@@ -154,14 +157,14 @@ export default async function AdminPage() {
 }
 
 function Gate({
-  icon: Icon,
+  icon: glyph,
   label,
   value,
   target,
   note,
   href,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   value: number;
   target: number;
@@ -175,7 +178,7 @@ function Gate({
     <Link href={href} className="group bg-void p-8 transition-colors hover:bg-raised">
       <div className="flex items-center justify-between gap-4">
         <span className="flex items-center gap-3">
-          <Icon size={18} className={met ? "text-signal" : "text-ink-faint"} strokeWidth={2} />
+          <Icon icon={glyph} size={18} className={met ? "text-signal" : "text-ink-faint"} />
           <span className="label">{label}</span>
         </span>
         <span className="tabular font-mono text-sm text-ink-faint">
@@ -232,12 +235,12 @@ function Tile({
 }
 
 function Shortcut({
-  icon: Icon,
+  icon: glyph,
   title,
   body,
   href,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   title: string;
   body: string;
   href: string;
@@ -245,8 +248,8 @@ function Shortcut({
   return (
     <Link href={href} className="group bg-void p-7 transition-colors hover:bg-raised">
       <div className="flex items-center justify-between">
-        <Icon size={20} className="text-signal" strokeWidth={2} />
-        <ArrowUpRight
+        <Icon icon={glyph} size={20} className="text-signal" />
+        <Icon icon={ArrowUpRight}
           size={16}
           className="text-ink-faint transition-colors group-hover:text-signal"
         />

@@ -1,15 +1,22 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Copy, LogOut, User, Wallet } from "lucide-react";
+import { ArrowLeft, Check, Copy, Lock, LogOut, User, Wallet } from "lucide-react";
+
+import type { LucideIcon } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { DitherAvatar } from "@/components/dither-kit/avatar";
+import { useBalances } from "@/components/app/balances";
 import { useIdentity } from "@/components/app/identity";
 import { useWallet } from "@/components/wallet/wallet-provider";
-import { getNativeBalance, getShareBalance } from "@/lib/balances";
+import { ADMIN_ROOT } from "@/lib/admin";
+import { signOutAdmin } from "@/lib/admin-actions";
 import { shortAddress } from "@/lib/contracts";
 import { DURATION, ENTER, EXIT, MORPH_SPRING } from "@/lib/easing";
 import { formatNumber } from "@/lib/format";
@@ -26,24 +33,14 @@ export function ProfileMenu() {
   const { address, disconnect } = useWallet();
   const { displayName, seed, profile } = useIdentity();
 
+  // Already fetched on connect, so the figures are present the first time this opens rather than
+  // arriving a beat later.
+  const { xlm, shares } = useBalances();
+  const pathname = usePathname();
+  const inAdmin = pathname.startsWith(ADMIN_ROOT);
+
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [balances, setBalances] = useState<{ xlm: number | null; shares: number | null } | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (!open || !address) return;
-    let cancelled = false;
-    void Promise.all([getNativeBalance(address), getShareBalance(address)]).then(
-      ([xlm, shares]) => {
-        if (!cancelled) setBalances({ xlm, shares });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [open, address]);
 
   useEffect(() => {
     if (!open) return;
@@ -55,7 +52,7 @@ export function ProfileMenu() {
   if (!address) {
     return (
       <Link href="/connect" className="btn btn-primary !px-5 !py-2.5 !text-xs">
-        <Wallet size={15} strokeWidth={2} />
+        <Icon icon={Wallet} size={15} strokeWidth={2} />
         Connect
       </Link>
     );
@@ -118,19 +115,41 @@ export function ProfileMenu() {
                       </div>
 
                       <div className="space-y-3 border-b border-edge p-5">
-                        <Balance label="XLM" value={balances?.xlm ?? null} />
-                        <Balance label="nXLM" value={balances?.shares ?? null} signal />
+                        <Balance label="XLM" value={xlm} />
+                        <Balance label="nXLM" value={shares} signal />
                       </div>
 
+                      {/* In admin the menu offers the way out of admin rather than a link into the
+                          user-facing profile, which would silently drop the operator back into the
+                          ordinary app. */}
                       <div className="p-2">
-                        <Item icon={User} onClick={() => setOpen(false)} href="/app/profile">
-                          Profile
-                        </Item>
-                        <Item icon={copied ? Check : Copy} onClick={copy}>
+                        {inAdmin ? (
+                          <MenuItem glyph={ArrowLeft} onClick={() => setOpen(false)} href="/app">
+                            Back to the app
+                          </MenuItem>
+                        ) : (
+                          <MenuItem glyph={User} onClick={() => setOpen(false)} href="/app/profile">
+                            Profile
+                          </MenuItem>
+                        )}
+                        <MenuItem glyph={copied ? Check : Copy} onClick={copy}>
                           {copied ? "Copied" : "Copy address"}
-                        </Item>
-                        <Item
-                          icon={LogOut}
+                        </MenuItem>
+                        {inAdmin && (
+                          <MenuItem
+                            glyph={Lock}
+                            tone="ember"
+                            onClick={async () => {
+                              setOpen(false);
+                              await signOutAdmin();
+                              window.location.assign("/app");
+                            }}
+                          >
+                            Lock admin
+                          </MenuItem>
+                        )}
+                        <MenuItem
+                          glyph={LogOut}
                           tone="ember"
                           onClick={() => {
                             setOpen(false);
@@ -138,7 +157,7 @@ export function ProfileMenu() {
                           }}
                         >
                           Disconnect
-                        </Item>
+                        </MenuItem>
                       </div>
                     </motion.div>
                   </div>
@@ -165,14 +184,14 @@ function Balance({ label, value, signal }: { label: string; value: number | null
   );
 }
 
-function Item({
-  icon: Icon,
+function MenuItem({
+  glyph,
   children,
   href,
   onClick,
   tone = "default",
 }: {
-  icon: React.ElementType;
+  glyph: LucideIcon;
   children: React.ReactNode;
   href?: string;
   onClick?: () => void;
@@ -184,7 +203,7 @@ function Item({
 
   const inner = (
     <>
-      <Icon size={16} strokeWidth={2} />
+      <Icon icon={glyph} size={16} />
       {children}
     </>
   );

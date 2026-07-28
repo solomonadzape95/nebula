@@ -12,6 +12,8 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -95,7 +97,7 @@ export function Menu({
         className="flex size-14 items-center justify-center border border-edge bg-void/60 text-ink-dim backdrop-blur-sm transition-colors hover:border-ink-faint hover:text-ink"
         style={{ pointerEvents: open ? "none" : "auto" }}
       >
-        <MenuIcon size={26} strokeWidth={2} />
+        <Icon icon={MenuIcon} size={26} strokeWidth={2} />
       </motion.button>
 
       {typeof document !== "undefined" &&
@@ -145,7 +147,7 @@ export function Menu({
                           aria-label="Close menu"
                           className="flex size-12 items-center justify-center text-ink-dim transition-colors hover:text-ink"
                         >
-                          <X size={28} strokeWidth={2} />
+                          <Icon icon={X} size={28} strokeWidth={2} />
                         </button>
                       </div>
 
@@ -211,7 +213,7 @@ function MenuRow({
   index: number;
   onNavigate: () => void;
 }) {
-  const { icon: Icon } = item;
+  const { icon: Glyph } = item;
 
   return (
     <motion.a
@@ -239,7 +241,7 @@ function MenuRow({
             maskSize: "2.5px 2.5px",
           }}
         >
-          <Icon size={30} strokeWidth={2.5} />
+          <Glyph size={30} strokeWidth={2.5} />
         </motion.span>
 
         {/* Solid, signal, lifted: the hover state. */}
@@ -249,7 +251,7 @@ function MenuRow({
           transition={MORPH_SPRING}
           className="absolute text-signal"
         >
-          <Icon size={30} strokeWidth={2} />
+          <Glyph size={30} strokeWidth={2} />
         </motion.span>
       </span>
 
@@ -266,7 +268,7 @@ function MenuRow({
         transition={{ duration: DURATION.fast, ease: ENTER }}
         className="text-signal"
       >
-        <ArrowUpRight size={20} strokeWidth={2} />
+        <Icon icon={ArrowUpRight} size={20} strokeWidth={2} />
       </motion.span>
     </motion.a>
   );

@@ -1,4 +1,7 @@
 import { AlertTriangle, Layers, PauseCircle, Sprout } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 
 import { DataNotice } from "@/components/site/data-notice";
 import { STRATEGY_ID, VAULT_ID, explorerContract, shortAddress } from "@/lib/contracts";
@@ -173,7 +176,7 @@ export default async function AdminOpsPage() {
 
         <div className="border border-ember/25 bg-ember/[0.04]">
           <div className="flex items-start gap-4 border-b border-ember/20 p-7">
-            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-ember" strokeWidth={2} />
+            <Icon icon={AlertTriangle} size={20} className="mt-0.5 shrink-0 text-ember" strokeWidth={2} />
             <p className="text-sm leading-relaxed text-ink-dim">
               These require the admin multisig and take effect immediately. Withdrawals are absent
               from this list on purpose: the vault has no mechanism to pause them, which is what
@@ -212,7 +215,7 @@ export default async function AdminOpsPage() {
 }
 
 function Job({
-  icon: Icon,
+  icon: glyph,
   title,
   body,
   readout,
@@ -221,7 +224,7 @@ function Job({
   disabled,
   disabledNote,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   title: string;
   body: string;
   readout: string;
@@ -234,7 +237,7 @@ function Job({
     <div className="bg-void p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Icon size={20} className="text-signal" strokeWidth={2} />
+          <Icon icon={glyph} size={20} className="text-signal" />
           <h2 className="text-lg font-medium tracking-tight text-ink">{title}</h2>
         </div>
       </div>
@@ -271,18 +274,18 @@ function Param({ label, value, note }: { label: string; value: string; note: str
 }
 
 function Restricted({
-  icon: Icon,
+  icon: glyph,
   title,
   body,
 }: {
-  icon: React.ElementType;
+  icon: LucideIcon;
   title: string;
   body: string;
 }) {
   return (
     <div className="bg-void p-7">
       <div className="flex items-center gap-3">
-        <Icon size={18} className="text-ember" strokeWidth={2} />
+        <Icon icon={glyph} size={18} className="text-ember" />
         <h3 className="text-base font-medium text-ink">{title}</h3>
       </div>
       <p className="mt-3 text-sm leading-relaxed text-ink-dim">{body}</p>

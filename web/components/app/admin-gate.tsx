@@ -2,6 +2,8 @@
 
 import { motion } from "motion/react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
+
+import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -73,7 +75,7 @@ export function AdminGate() {
         </div>
 
         <form onSubmit={submit} className="p-7 sm:p-8">
-          <ShieldCheck size={26} className="text-signal" strokeWidth={2} />
+          <Icon icon={ShieldCheck} size={26} className="text-signal" strokeWidth={2} />
 
           <h1 className="mt-6 text-2xl font-medium tracking-tight text-ink">Restricted</h1>
           <p className="mt-3 text-base leading-relaxed text-ink-dim">
@@ -132,7 +134,7 @@ export function AdminGate() {
             href="/app"
             className="mt-8 inline-flex items-center gap-2 font-mono text-xs tracking-wider text-ink-faint uppercase transition-colors hover:text-ink"
           >
-            <ArrowLeft size={14} /> Back to the app
+            <Icon icon={ArrowLeft} size={14} /> Back to the app
           </Link>
         </form>
       </div>
