@@ -312,24 +312,25 @@ function Section({
 function Footer() {
   return (
     <footer className="relative flex min-h-[92svh] flex-col overflow-hidden">
-      {/* The photograph, run through the same dither as the rest of the page. `colorBack` is the
-          page's own void so the dark end of the image resolves to exactly the page ground, and
-          the picture dissolves into the background instead of ending at an edge. */}
+      {/* The photograph, run through the same dither as the rest of the page.
+          `colorBack` is fully transparent, which is the closest thing the shader has to a
+          background removal: the darkest tones of the image drop out entirely and the page ground
+          shows through, so the picture reads as printed onto the page rather than placed on it. */}
       <ImageField
         source="footer"
         className="pointer-events-none absolute inset-0"
         pxSize={2.6}
         colorSteps={4}
-        colorBack="#07080a"
+        colorBack="#00000000"
       />
-      {/* Top and bottom fades carry that dissolve the rest of the way, so there is no seam where
-          the image starts or where the wordmark band begins. */}
+      {/* Only the bottom fades. The top is left alone so the image begins exactly at the footer's
+          own border instead of behind a black band. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, var(--color-void) 0%, rgba(7,8,10,0.25) 28%, rgba(7,8,10,0.6) 62%, rgba(7,8,10,0.92) 86%, var(--color-void) 100%)",
+            "linear-gradient(to bottom, transparent 0%, transparent 45%, rgba(7,8,10,0.55) 72%, rgba(7,8,10,0.85) 88%, rgba(7,8,10,0.95) 100%)",
         }}
       />
 
@@ -356,23 +357,17 @@ function Footer() {
         </div>
       </div>
 
-      {/* Wordmark band. The drift field is barely there on purpose: it should register as a
-          texture behind the name, not as another animation competing with the hero. */}
-      <div className="relative overflow-hidden">
-        <DitherField
-          variant="drift"
-          className="pointer-events-none absolute inset-0 opacity-[0.09]"
-          speed={0.35}
-        />
-        <div className="relative mx-auto max-w-app px-5 sm:px-8">
-          <p
-            aria-hidden
-            className="pt-10 pb-6 leading-[0.78] font-medium tracking-[-0.05em] text-signal select-none"
-            style={{ fontSize: "var(--text-wordmark)" }}
-          >
-            nebula
-          </p>
-        </div>
+      {/* The wordmark sits directly on the photograph with no panel behind it, punched through
+          the same halftone lattice as every other mark on the site. It is set wider than the
+          viewport on purpose so the last letters run off the right edge. */}
+      <div className="relative">
+        <p
+          aria-hidden
+          className="dither-mask pb-4 pl-5 leading-[0.72] font-medium tracking-[-0.055em] whitespace-nowrap text-signal select-none sm:pl-8"
+          style={{ fontSize: "var(--text-wordmark)" }}
+        >
+          nebula
+        </p>
       </div>
     </footer>
   );

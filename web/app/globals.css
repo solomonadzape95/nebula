@@ -53,13 +53,17 @@
   --text-display: clamp(3rem, 8.5vw, 7.5rem);
   --text-headline: clamp(2.5rem, 5vw, 4.25rem);
   --text-statement: clamp(1.875rem, 3.8vw, 3.5rem);
-  /* The footer wordmark. Fills the viewport width at every size. */
-  --text-wordmark: clamp(4.5rem, 20vw, 20rem);
+  /* The footer wordmark. Deliberately wider than the viewport so the final letters run off the
+     right edge: the name reads as a printed mark rather than a centred logo. */
+  --text-wordmark: clamp(6rem, 27vw, 30rem);
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Reserve the scrollbar track permanently. Locking body scroll for the menu would otherwise
+       reclaim its width and shift the whole page sideways as it opens. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -89,11 +93,22 @@
   .dither-overlay {
     position: fixed;
     inset: 0;
-    z-index: 60;
+    /* Above the menu too: the grain is the paper everything is printed on, so nothing should
+       ever sit outside it. */
+    z-index: 90;
     pointer-events: none;
     opacity: 0.06;
     background-image: radial-gradient(circle at 1px 1px, #fff 0.5px, transparent 0);
     background-size: var(--dither-cell) var(--dither-cell);
+  }
+
+  /* Punches any element through the halftone grid. Shared by glyphs, icons and the wordmark so
+     they all disintegrate on exactly the same lattice. */
+  .dither-mask {
+    -webkit-mask-image: radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0);
+    mask-image: radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0);
+    -webkit-mask-size: 3px 3px;
+    mask-size: 3px 3px;
   }
 
   .dither {
