@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
-import { Sparkline } from "@/components/dither-kit/sparkline";
+import { AllocationBar } from "@/components/site/allocation-bar";
 import { DataNotice } from "@/components/site/data-notice";
+import { VaultChart, type ChartPoint } from "@/components/site/vault-chart";
 import { PageHero } from "@/components/site/page-hero";
 import { Stat } from "@/components/site/stat";
 import {
@@ -11,7 +12,7 @@ import {
   explorerContract,
   shortAddress,
 } from "@/lib/contracts";
-import { formatStroops, fromStroops, growthPercent } from "@/lib/format";
+import { formatStroops, fromStroops, growthPercent, shortDate } from "@/lib/format";
 import { getApy, getIndexerStats, getPriceSeries, getSyncState } from "@/lib/indexer";
 import { getVaultState, type VaultState } from "@/lib/stellar";
 
@@ -32,8 +33,14 @@ export default async function StatsPage() {
     getSyncState(),
   ]);
 
-  const priceData = series.map((p) => fromStroops(p.sharePrice));
-  const tvlData = series.map((p) => fromStroops(p.totalAssets));
+  const priceData: ChartPoint[] = series.map((p) => ({
+    at: shortDate(p.at),
+    value: fromStroops(p.sharePrice),
+  }));
+  const tvlData: ChartPoint[] = series.map((p) => ({
+    at: shortDate(p.at),
+    value: fromStroops(p.totalAssets),
+  }));
   const growth = series.length > 1 ? growthPercent(series[0]!.sharePrice, series.at(-1)!.sharePrice) : 0;
 
   return (
@@ -95,12 +102,14 @@ export default async function StatsPage() {
               value={vault ? formatStroops(vault.sharePrice, 7) : "—"}
               caption="Every step up is a harvest. The only thing that can push it down is a real loss."
               data={priceData}
+              decimals={6}
             />
             <ChartCard
               title="Total value locked"
               value={vault ? `${formatStroops(vault.totalAssets, 2)} XLM` : "—"}
               caption="Deposits less withdrawals, plus everything the vault has earned and kept."
               data={tvlData}
+              decimals={2}
             />
           </div>
         </section>
@@ -117,18 +126,20 @@ function ChartCard({
   value,
   caption,
   data,
+  decimals,
 }: {
   title: string;
   value: string;
   caption: string;
-  data: number[];
+  data: ChartPoint[];
+  decimals: number;
 }) {
   return (
     <div className="bg-void p-8 sm:p-10">
       <span className="label">{title}</span>
       <p className="tabular mt-3 font-mono text-3xl text-signal sm:text-4xl">{value}</p>
-      <div className="mt-8 h-40">
-        <Sparkline data={data} color="green" variant="gradient" animate bloom="low" />
+      <div className="mt-8 h-56">
+        <VaultChart data={data} label={title} decimals={decimals} />
       </div>
       <p className="mt-7 border-t border-edge pt-5 text-sm leading-relaxed text-ink-dim">
         {caption}
@@ -152,10 +163,24 @@ function Allocation({ vault }: { vault: VaultState }) {
         </div>
 
         {/* A two-segment bar rather than a pie: there are two numbers and they sum to a whole. */}
-        <div className="flex h-3 w-full overflow-hidden border border-edge">
-          <div className="bg-signal" style={{ width: `${deployedPct}%` }} />
-          <div className="bg-signal-dim/40" style={{ width: `${idlePct}%` }} />
-        </div>
+        <AllocationBar
+          segments={[
+            {
+              label: "Supplied to Blend",
+              amount: formatStroops(deployed, 2),
+              pct: deployedPct,
+              note: "Earning borrower interest",
+              tone: "signal",
+            },
+            {
+              label: "Idle reserve",
+              amount: formatStroops(vault.idle, 2),
+              pct: idlePct,
+              note: "Held back so ordinary withdrawals are instant",
+              tone: "dim",
+            },
+          ]}
+        />
 
         <div className="mt-10 grid gap-px border border-edge bg-edge md:grid-cols-2">
           <AllocationRow

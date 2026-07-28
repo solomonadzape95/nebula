@@ -2,26 +2,26 @@
 
 import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowLeft, ArrowUpRight, Check, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { DitherField } from "@/components/shader/dither-field";
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { Logo } from "@/components/site/logo";
+import { useWallet } from "@/components/wallet/wallet-provider";
+import { shortAddress } from "@/lib/contracts";
 import { DURATION, ENTER } from "@/lib/easing";
 import { WALLETS, type Wallet } from "@/lib/wallets";
 
-type Status = { wallet: string; state: "connecting" | "failed" } | null;
-
 export function ConnectPanel() {
-  const [status, setStatus] = useState<Status>(null);
+  const router = useRouter();
+  const { address, status, error, connect, disconnect, walletId } = useWallet();
 
-  // Wiring point. Stellar Wallets Kit brokers the actual handshake; until it is installed this
-  // shows the pending state and then the honest failure rather than pretending to succeed.
-  const connect = (wallet: Wallet) => {
-    setStatus({ wallet: wallet.id, state: "connecting" });
-    window.setTimeout(() => setStatus({ wallet: wallet.id, state: "failed" }), 1400);
+  const onSelect = async (wallet: Wallet) => {
+    await connect(wallet.id);
+    // Landing back on the app is the point of connecting; staying here would be a dead end.
+    router.push("/app");
   };
 
   return (
@@ -48,34 +48,55 @@ export function ConnectPanel() {
           </div>
 
           <h1 className="text-3xl font-medium tracking-tight text-balance text-ink sm:text-4xl">
-            Connect your wallet
+            {address ? "Wallet connected" : "Connect your wallet"}
           </h1>
           <p className="mt-4 text-base leading-relaxed text-ink-dim">
-            Nebula has no accounts, no passwords, and no email. The vault is non-custodial, so your
-            wallet is your identity and your keys never leave it.
+            {address
+              ? "You are ready to deposit. Nebula never holds your keys, and every action is signed by you."
+              : "Nebula has no accounts, no passwords, and no email. The vault is non-custodial, so your wallet is your identity and your keys never leave it."}
           </p>
 
-          <div className="mt-10 space-y-px border border-edge bg-edge">
-            {WALLETS.map((wallet) => (
-              <WalletRow
-                key={wallet.id}
-                wallet={wallet}
-                status={status?.wallet === wallet.id ? status.state : null}
-                onSelect={() => connect(wallet)}
-              />
-            ))}
-          </div>
+          {address ? (
+            <div className="mt-10 border border-signal-dim/40 bg-signal/[0.04] p-6">
+              <span className="label">Connected address</span>
+              <p className="mt-3 font-mono text-lg break-all text-ink">
+                {shortAddress(address, 10, 10)}
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link href="/app" className="btn btn-primary w-full sm:w-auto">
+                  Go to the vault
+                </Link>
+                <button
+                  type="button"
+                  onClick={disconnect}
+                  className="btn btn-ghost w-full sm:w-auto"
+                >
+                  Disconnect
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-10 space-y-px border border-edge bg-edge">
+              {WALLETS.map((wallet) => (
+                <WalletRow
+                  key={wallet.id}
+                  wallet={wallet}
+                  status={walletId === wallet.id && status === "connecting" ? "connecting" : null}
+                  onSelect={() => onSelect(wallet)}
+                />
+              ))}
+            </div>
+          )}
 
-          {status?.state === "failed" && (
+          {error && !address && (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: DURATION.base, ease: ENTER }}
-              className="mt-6 border border-ember/30 bg-ember/6 px-5 py-4"
+              className="mt-6 border border-ember/30 bg-ember/[0.06] px-5 py-4"
             >
               <p className="text-sm leading-relaxed text-ink-dim">
-                <span className="text-ember">Not wired up yet.</span> Wallet connection lands with
-                the app build. Everything else on this page is real.
+                <span className="text-ember">Could not connect.</span> {error}
               </p>
             </motion.div>
           )}
@@ -169,7 +190,7 @@ function WalletRow({
   onSelect,
 }: {
   wallet: Wallet;
-  status: "connecting" | "failed" | null;
+  status: "connecting" | null;
   onSelect: () => void;
 }) {
   return (
@@ -196,8 +217,6 @@ function WalletRow({
       <span className="shrink-0 text-ink-faint">
         {status === "connecting" ? (
           <DitherSpinner size={20} />
-        ) : status === "failed" ? (
-          <Check size={18} className="text-ember" />
         ) : (
           <ArrowUpRight
             size={18}

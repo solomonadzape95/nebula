@@ -3,10 +3,12 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Wallet } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { DURATION, ENTER } from "@/lib/easing";
+import { useWallet } from "@/components/wallet/wallet-provider";
+import { getNativeBalance } from "@/lib/balances";
 import { formatNumber } from "@/lib/format";
 
 type Mode = "deposit" | "withdraw";
@@ -31,11 +33,31 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
   const [amount, setAmount] = useState("");
   const [state, setState] = useState<TxState>("idle");
 
-  // Wallet balances need a connected wallet, which lands with the Stellar Wallets Kit
-  // integration. Until then the card is honest about being unable to check.
-  const connected = false;
+  const { address } = useWallet();
+  // Keyed by address so a disconnect or account switch invalidates the reading without an effect
+  // resetting it. Storing the address alongside the number is what lets that be derived.
+  const [fetched, setFetched] = useState<{ address: string; balance: number | null } | null>(null);
+
+  // Balance is fetched client-side because it is per-connected-wallet, so it cannot be part of the
+  // server render. Null means "not known yet or unfunded", which is why Max is hidden rather than
+  // showing a confident zero.
+  useEffect(() => {
+    if (!address) return;
+    let cancelled = false;
+    void getNativeBalance(address).then((next) => {
+      if (!cancelled) setFetched({ address, balance: next });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  const balance = fetched?.address === address ? fetched.balance : null;
+
   const parsed = Number(amount) || 0;
-  const valid = parsed > 0 && sharePrice !== null;
+  const overBalance =
+    mode === "deposit" && balance !== null && parsed > balance;
+  const valid = parsed > 0 && sharePrice !== null && !overBalance;
 
   // What you get out the other side. Deposits divide by the price, redemptions multiply by it.
   const receives = sharePrice === null ? 0 : mode === "deposit" ? parsed / sharePrice : parsed * sharePrice;
@@ -47,7 +69,7 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
     window.setTimeout(() => setState("error"), 2200);
   };
 
-  if (!connected) return <DisconnectedCard />;
+  if (!address) return <DisconnectedCard />;
 
   return (
     <div className="panel">
@@ -84,12 +106,27 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
           <label htmlFor="amount" className="label">
             {mode === "deposit" ? "Amount to deposit" : "nXLM to redeem"}
           </label>
-          <span className="font-mono text-xs text-ink-faint">
-            {depositsPaused && mode === "deposit" ? "Deposits paused" : ""}
-          </span>
+          {mode === "deposit" && balance !== null ? (
+            <button
+              type="button"
+              onClick={() => setAmount(String(Math.max(0, balance - 1)))}
+              className="font-mono text-xs text-ink-faint transition-colors hover:text-signal"
+              title="Leaves 1 XLM behind for reserves and fees"
+            >
+              Max {formatNumber(balance, 2)}
+            </button>
+          ) : (
+            <span className="font-mono text-xs text-ink-faint">
+              {depositsPaused && mode === "deposit" ? "Deposits paused" : ""}
+            </span>
+          )}
         </div>
 
-        <div className="mt-4 flex items-baseline gap-3 border-b border-edge pb-4 transition-colors focus-within:border-signal">
+        <div
+          className={`mt-4 flex items-baseline gap-3 border-b pb-4 transition-colors ${
+            overBalance ? "border-ember" : "border-edge focus-within:border-signal"
+          }`}
+        >
           <input
             id="amount"
             type="text"
@@ -106,6 +143,12 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
             {mode === "deposit" ? "XLM" : "nXLM"}
           </span>
         </div>
+
+        {overBalance && (
+          <p className="mt-3 text-sm text-ember">
+            You have {formatNumber(balance ?? 0, 4)} XLM.
+          </p>
+        )}
 
         <div className="mt-7 space-y-3 border-t border-edge pt-6">
           <Row

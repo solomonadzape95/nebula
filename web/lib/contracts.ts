@@ -5,7 +5,9 @@
  * including the salt and operator keys. When the app starts reading live chain state this becomes
  * a build-time import of just the public fields.
  */
-export const NETWORK = "testnet";
+export type StellarNetwork = "testnet" | "mainnet";
+
+export const NETWORK: StellarNetwork = "testnet";
 
 export const VAULT_ID = "CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO";
 export const SHARE_TOKEN_ID = "CAVRFADYBNPLRL734VGRS6FW4LXRDEKRZZDQCSMB7VXCFZPDZ5JB3SN2";

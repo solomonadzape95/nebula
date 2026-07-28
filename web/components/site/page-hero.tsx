@@ -18,10 +18,14 @@ export function PageHero({
 }) {
   return (
     <section className="scanlines relative overflow-hidden border-b border-edge">
+      {/* Oversized and centred so the sphere's own circular edge sits well outside the hero.
+          A canvas that only just covers the box leaves that boundary visible, which reads as a
+          rounded corner rather than as a field. */}
       <DitherField
         variant="blackhole"
-        className="pointer-events-none absolute -top-1/2 left-1/2 aspect-square w-[120vmax] -translate-x-1/2"
+        className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-[200vmax] -translate-x-1/2 -translate-y-1/2"
         speed={0.7}
+        scale={1.35}
       />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-void/40" />
       <div
