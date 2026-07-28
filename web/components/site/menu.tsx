@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   LineChart,
   Menu as MenuIcon,
+  Wallet,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -33,8 +34,9 @@ const SECTIONS: Item[] = [
 
 const PAGES: Item[] = [
   { href: "/stats", label: "Vault stats", icon: LineChart, hint: "Live numbers" },
-  { href: "/how-it-works", label: "Documentation", icon: BookOpen, hint: "The long version" },
-  { href: "/faq", label: "FAQ", icon: HelpCircle, hint: "Common questions" },
+  { href: "/how-it-works", label: "How it works", icon: BookOpen, hint: "The long version" },
+  { href: "/faq", label: "FAQ", icon: HelpCircle, hint: "Everything worth asking" },
+  { href: "/connect", label: "Connect wallet", icon: Wallet, hint: "Your wallet is your account" },
 ];
 
 /**

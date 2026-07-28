@@ -2,18 +2,15 @@ import { ArrowDownToLine, Coins, Repeat } from "lucide-react";
 import Link from "next/link";
 
 import { DitherField } from "@/components/shader/dither-field";
-import { ImageField } from "@/components/shader/image-field";
 import { DitherIcon } from "@/components/site/dither-icon";
 import { DitherText } from "@/components/site/dither-text";
+import { FaqList } from "@/components/site/faq-list";
 import { Glyph } from "@/components/site/glyph";
-import { Logo } from "@/components/site/logo";
 import { LiveBadge } from "@/components/site/live-badge";
-import { Nav } from "@/components/site/nav";
 import { NxlmDemo } from "@/components/site/nxlm-demo";
 import { Stat } from "@/components/site/stat";
 import { YieldChart } from "@/components/site/yield-chart";
-
-const VAULT_ID = "CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO";
+import { FEATURED_FAQ } from "@/lib/faq";
 
 /**
  * Placeholder figures.
@@ -32,17 +29,13 @@ const PLACEHOLDER = {
 export default function Home() {
   return (
     <>
-      <Nav />
-      <div className="dither-overlay" aria-hidden />
-      <main className="flex-1">
-        <Hero />
-        <StatBand />
-        <Problem />
-        <HowItWorks />
-        <NxlmExplainer />
-        <YieldSource />
-      </main>
-      <Footer />
+      <Hero />
+      <StatBand />
+      <Problem />
+      <HowItWorks />
+      <NxlmExplainer />
+      <YieldSource />
+      <Faq />
     </>
   );
 }
@@ -308,69 +301,30 @@ function Section({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────── footer */
+/* ────────────────────────────────────────────────────────────────── faq */
 
-function Footer() {
+function Faq() {
   return (
-    <footer className="relative flex min-h-[92svh] flex-col overflow-hidden">
-      {/* The photograph, run through the same dither as the rest of the page.
-          `colorBack` is fully transparent, which is the closest thing the shader has to a
-          background removal: the darkest tones of the image drop out entirely and the page ground
-          shows through, so the picture reads as printed onto the page rather than placed on it. */}
-      <ImageField
-        source="footer"
-        className="pointer-events-none absolute inset-0"
-        pxSize={2.6}
-        colorSteps={4}
-        colorBack="#00000000"
+    <Section id="faq" label="Questions">
+      <Glyph
+        char="?"
+        rotate={12}
+        opacity={0.04}
+        className="-top-16 -right-8 text-[20rem] lg:text-[26rem]"
       />
-      {/* Only the bottom fades. The top is left alone so the image begins exactly at the footer's
-          own border instead of behind a black band. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, transparent 0%, transparent 45%, rgba(7,8,10,0.55) 72%, rgba(7,8,10,0.85) 88%, rgba(7,8,10,0.95) 100%)",
-        }}
-      />
-
-      <div className="relative flex flex-1 items-center">
-        <div className="mx-auto w-full max-w-app px-5 py-28 sm:px-8">
-          <h2 className="text-headline max-w-2xl text-balance text-ink">Put your XLM to work.</h2>
-          <p className="mt-7 max-w-lg text-lg leading-relaxed text-ink-dim">
-            A testnet wallet, two minutes, and nothing at risk. See what it does before you decide
-            anything.
-          </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Link href="/app" className="btn btn-primary w-full sm:w-auto">
-              Launch app
+      <div className="relative grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+        <div>
+          <h2 className="text-headline text-balance text-ink">The short answers.</h2>
+          <p className="mt-6 text-lg leading-relaxed text-ink-dim">
+            The longer ones, including what can go wrong, are on the{" "}
+            <Link href="/faq" className="text-signal underline-offset-4 hover:underline">
+              full FAQ
             </Link>
-            <a
-              href={`https://stellar.expert/explorer/testnet/contract/${VAULT_ID}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-ghost w-full sm:w-auto"
-            >
-              Read the contract
-            </a>
-          </div>
+            .
+          </p>
         </div>
+        <FaqList items={FEATURED_FAQ} />
       </div>
-
-      <div className="relative mx-auto w-full max-w-app px-5 pb-8 sm:px-8">
-        <div className="flex flex-col gap-4 border-t border-edge/60 pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/" className="brand flex w-fit items-center gap-3">
-            <Logo size={32} cell={1.8} className="brand-mark text-signal" />
-            <span className="brand-name font-mono text-sm tracking-[0.2em] text-ink-dim uppercase">
-              Nebula
-            </span>
-          </Link>
-          <span className="font-mono text-xs text-ink-faint">
-            © {new Date().getFullYear()} Nebula. All rights reserved, all wrongs pardoned.
-          </span>
-        </div>
-      </div>
-    </footer>
+    </Section>
   );
 }
