@@ -134,7 +134,9 @@ function Problem() {
       <p className="text-statement relative mx-auto max-w-4xl text-balance text-ink">
         Your XLM sits in a wallet <DitherText>earning nothing</DitherText>. Real yield exists on
         Stellar, but reaching it means running lending positions by hand.{" "}
-        <span className="text-ink-faint">Almost nobody does.</span>
+        {/* Green, not grey. It is the punchline of the section — the gap the product exists to
+            close — and dimming it made the sentence trail off exactly where it should land. */}
+        <span className="text-signal">Almost nobody does.</span>
       </p>
     </Section>
   );

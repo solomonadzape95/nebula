@@ -95,7 +95,7 @@ export function NxlmDemo() {
         <div className="mt-10 border-t border-edge pt-7">
           <div className="flex items-baseline justify-between gap-4">
             <span className="label">Earned in {elapsed.toFixed(1)}s</span>
-            <span className="figure text-xl text-signal sm:text-2xl">
+            <span className="figure text-2xl text-signal sm:text-3xl">
               +{formatMoney(earned)} XLM
             </span>
           </div>
@@ -163,7 +163,7 @@ function DemoRow({
       <span className={`text-base ${frozen ? "text-ink" : "text-ink-dim"}`}>{label}</span>
       <span className="flex items-baseline gap-2">
         <span
-          className={`figure ${large ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"} ${
+          className={`figure ${large ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"} ${
             signal ? "text-signal" : frozen ? "text-ink" : "text-ink-dim"
           }`}
         >

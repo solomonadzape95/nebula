@@ -116,7 +116,7 @@ export default async function AdminPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <span className="label">Share price</span>
-                <p className="figure mt-3 text-3xl text-signal sm:text-4xl">
+                <p className="figure mt-3 text-4xl text-signal sm:text-5xl">
                   {vault ? formatStroops(vault.sharePrice, 7) : "—"}
                 </p>
               </div>
@@ -213,7 +213,7 @@ function Gate({
       </div>
 
       <p
-        className={`figure mt-5 text-4xl leading-none ${
+        className={`figure mt-5 text-5xl leading-none ${
           met ? "text-signal" : "text-ink"
         }`}
       >

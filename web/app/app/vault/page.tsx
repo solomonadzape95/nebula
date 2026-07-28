@@ -136,7 +136,7 @@ function Holding({
         <span className="label">{label}</span>
         <span className="tabular font-mono text-sm text-signal">{pct.toFixed(1)}%</span>
       </div>
-      <p className="figure mt-4 text-3xl text-ink">
+      <p className="figure mt-4 text-4xl text-ink">
         {formatStroops(amount, 2)} <span className="text-base text-ink-faint">XLM</span>
       </p>
       <p className="mt-5 text-base leading-relaxed text-ink-dim">{body}</p>

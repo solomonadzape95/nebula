@@ -11,9 +11,10 @@ export function Stat({ label, value, unit, hint, tone = "default" }: StatProps) 
     <div className="flex flex-col gap-2">
       <span className="label">{label}</span>
       {/* Long values like a seven-decimal share price have to survive a 320px column, so the size
-          steps down at the narrow end rather than wrapping mid-number. */}
+          steps down at the narrow end rather than wrapping mid-number. The steps go up together,
+          keeping that relationship: the smallest breakpoint stays the one doing the protecting. */}
       <span
-        className={`figure text-[1.625rem] leading-none sm:text-3xl lg:text-[2.125rem] ${
+        className={`figure text-[2rem] leading-none sm:text-4xl lg:text-[2.75rem] ${
           tone === "signal" ? "text-signal" : "text-ink"
         }`}
       >

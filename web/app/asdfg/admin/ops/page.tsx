@@ -267,7 +267,7 @@ function Param({ label, value, note }: { label: string; value: string; note: str
   return (
     <div className="bg-void p-7">
       <span className="label">{label}</span>
-      <p className="figure mt-3 text-2xl text-ink">{value}</p>
+      <p className="figure mt-3 text-3xl text-ink">{value}</p>
       <p className="mt-2 text-sm text-ink-faint">{note}</p>
     </div>
   );

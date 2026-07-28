@@ -44,7 +44,7 @@ export default async function AdminFeedbackPage() {
           </span>
         </div>
 
-        <p className="figure mt-4 text-5xl leading-none text-signal">{total}</p>
+        <p className="figure mt-4 text-6xl leading-none text-signal">{total}</p>
 
         <div className="mt-7 h-2 w-full overflow-hidden bg-raised">
           <div
