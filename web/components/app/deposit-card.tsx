@@ -1,18 +1,30 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Wallet } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, Wallet } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { DitherSpinner } from "@/components/ui/dither-loader";
-import { DURATION, ENTER } from "@/lib/easing";
 import { useWallet } from "@/components/wallet/wallet-provider";
-import { getNativeBalance } from "@/lib/balances";
+import { getNativeBalance, getShareBalance } from "@/lib/balances";
+import { explorerTx } from "@/lib/contracts";
+import { DURATION, ENTER } from "@/lib/easing";
 import { formatNumber } from "@/lib/format";
+import { TxError, deposit, redeem, type TxPhase } from "@/lib/tx";
 
 type Mode = "deposit" | "withdraw";
-type TxState = "idle" | "signing" | "submitting" | "done" | "error";
+
+/** XLM left behind so the account keeps its base reserve and can still pay fees. */
+const FEE_HEADROOM = 1.5;
+
+const PHASE_LABEL: Partial<Record<TxPhase, string>> = {
+  simulating: "Checking",
+  signing: "Waiting for your wallet",
+  submitting: "Submitting",
+  confirming: "Confirming on Stellar",
+};
 
 /**
  * Deposit and withdraw as two tabs on one card rather than two routes.
@@ -21,71 +33,103 @@ type TxState = "idle" | "signing" | "submitting" | "done" | "error";
  * the target is under two minutes from landing to deposit. Lido, Yearn and Blend all do it this
  * way for the same reason.
  */
-interface DepositCardProps {
+export function DepositCard({
+  sharePrice,
+  depositsPaused,
+  availableLiquidity,
+}: {
   /** XLM per nXLM, from the contract. Null when the chain could not be read. */
   sharePrice: number | null;
   depositsPaused: boolean;
   availableLiquidity: number | null;
-}
+}) {
+  const router = useRouter();
+  const { address } = useWallet();
 
-export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: DepositCardProps) {
   const [mode, setMode] = useState<Mode>("deposit");
   const [amount, setAmount] = useState("");
-  const [state, setState] = useState<TxState>("idle");
+  const [phase, setPhase] = useState<TxPhase>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
 
-  const { address } = useWallet();
-  // Keyed by address so a disconnect or account switch invalidates the reading without an effect
-  // resetting it. Storing the address alongside the number is what lets that be derived.
-  const [fetched, setFetched] = useState<{ address: string; balance: number | null } | null>(null);
+  // Balances are per-connected-wallet, so they cannot be part of the server render. Keying the
+  // result by address means a disconnect or account switch invalidates it without an effect
+  // reaching in to reset state.
+  const [fetched, setFetched] = useState<{
+    address: string;
+    xlm: number | null;
+    shares: number | null;
+  } | null>(null);
 
-  // Balance is fetched client-side because it is per-connected-wallet, so it cannot be part of the
-  // server render. Null means "not known yet or unfunded", which is why Max is hidden rather than
-  // showing a confident zero.
+  // Refetches after a confirmed transaction, which is when the numbers have actually moved.
   useEffect(() => {
     if (!address) return;
     let cancelled = false;
-    void getNativeBalance(address).then((next) => {
-      if (!cancelled) setFetched({ address, balance: next });
-    });
+    void Promise.all([getNativeBalance(address), getShareBalance(address)]).then(
+      ([xlm, shares]) => {
+        if (!cancelled) setFetched({ address, xlm, shares });
+      },
+    );
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, txHash]);
 
-  const balance = fetched?.address === address ? fetched.balance : null;
+  const balances = fetched?.address === address ? fetched : null;
+  const max = mode === "deposit" ? (balances?.xlm ?? null) : (balances?.shares ?? null);
+  const spendable = mode === "deposit" && max !== null ? Math.max(0, max - FEE_HEADROOM) : max;
 
   const parsed = Number(amount) || 0;
-  const overBalance =
-    mode === "deposit" && balance !== null && parsed > balance;
-  const valid = parsed > 0 && sharePrice !== null && !overBalance;
+  const overBalance = max !== null && parsed > max;
+  const busy = phase !== "idle" && phase !== "done";
+  const blocked = mode === "deposit" && depositsPaused;
+  const valid = parsed > 0 && sharePrice !== null && !overBalance && !blocked;
 
-  // What you get out the other side. Deposits divide by the price, redemptions multiply by it.
-  const receives = sharePrice === null ? 0 : mode === "deposit" ? parsed / sharePrice : parsed * sharePrice;
+  const receives =
+    sharePrice === null ? 0 : mode === "deposit" ? parsed / sharePrice : parsed * sharePrice;
 
-  const submit = () => {
-    if (!valid) return;
-    setState("signing");
-    window.setTimeout(() => setState("submitting"), 900);
-    window.setTimeout(() => setState("error"), 2200);
+  const submit = async () => {
+    if (!valid || !address || busy) return;
+    setError(null);
+    setTxHash(null);
+
+    try {
+      const run = mode === "deposit" ? deposit : redeem;
+      const hash = await run({ address, amount: parsed, onPhase: setPhase });
+      setTxHash(hash);
+      setAmount("");
+      setPhase("done");
+      // Vault figures on this page are server-rendered, so they only move on a refresh.
+      router.refresh();
+    } catch (cause) {
+      setPhase("idle");
+      setError(cause instanceof TxError ? cause.message : "Something went wrong.");
+    }
   };
 
   if (!address) return <DisconnectedCard />;
 
   return (
     <div className="panel">
-      <div role="tablist" aria-label="Deposit or withdraw" className="grid grid-cols-2 border-b border-edge">
+      <div
+        role="tablist"
+        aria-label="Deposit or withdraw"
+        className="grid grid-cols-2 border-b border-edge"
+      >
         {(["deposit", "withdraw"] as const).map((m) => (
           <button
             key={m}
             type="button"
+            disabled={busy}
             onClick={() => {
               setMode(m);
               setAmount("");
-              setState("idle");
+              setError(null);
+              setTxHash(null);
             }}
             role="tab"
             aria-selected={mode === m}
-            className={`relative py-5 font-mono text-sm tracking-wider uppercase transition-colors ${
+            className={`relative py-5 font-mono text-sm tracking-wider uppercase transition-colors disabled:opacity-50 ${
               mode === m ? "text-signal" : "text-ink-faint hover:text-ink"
             }`}
           >
@@ -102,22 +146,27 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
       </div>
 
       <div className="p-7 sm:p-8">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between gap-3">
           <label htmlFor="amount" className="label">
             {mode === "deposit" ? "Amount to deposit" : "nXLM to redeem"}
           </label>
-          {mode === "deposit" && balance !== null ? (
+          {spendable !== null && spendable > 0 ? (
             <button
               type="button"
-              onClick={() => setAmount(String(Math.max(0, balance - 1)))}
-              className="font-mono text-xs text-ink-faint transition-colors hover:text-signal"
-              title="Leaves 1 XLM behind for reserves and fees"
+              onClick={() => setAmount(String(Number(spendable.toFixed(7))))}
+              disabled={busy}
+              className="font-mono text-xs text-ink-faint transition-colors hover:text-signal disabled:opacity-50"
+              title={
+                mode === "deposit"
+                  ? `Leaves ${FEE_HEADROOM} XLM for reserves and fees`
+                  : "Your full nXLM balance"
+              }
             >
-              Max {formatNumber(balance, 2)}
+              Max {formatNumber(spendable, 2)}
             </button>
           ) : (
             <span className="font-mono text-xs text-ink-faint">
-              {depositsPaused && mode === "deposit" ? "Deposits paused" : ""}
+              {blocked ? "Deposits paused" : ""}
             </span>
           )}
         </div>
@@ -133,11 +182,13 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
             inputMode="decimal"
             placeholder="0.00"
             value={amount}
+            disabled={busy}
             onChange={(e) => {
               setAmount(e.target.value.replace(/[^\d.]/g, ""));
-              setState("idle");
+              setError(null);
+              setTxHash(null);
             }}
-            className="tabular min-w-0 flex-1 bg-transparent font-mono text-3xl text-ink outline-none placeholder:text-ink-faint sm:text-4xl"
+            className="tabular min-w-0 flex-1 bg-transparent font-mono text-3xl text-ink outline-none placeholder:text-ink-faint disabled:opacity-60 sm:text-4xl"
           />
           <span className="font-mono text-sm text-ink-faint">
             {mode === "deposit" ? "XLM" : "nXLM"}
@@ -146,7 +197,7 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
 
         {overBalance && (
           <p className="mt-3 text-sm text-ember">
-            You have {formatNumber(balance ?? 0, 4)} XLM.
+            You have {formatNumber(max ?? 0, 4)} {mode === "deposit" ? "XLM" : "nXLM"}.
           </p>
         )}
 
@@ -172,44 +223,58 @@ export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: 
         <button
           type="button"
           onClick={submit}
-          disabled={
-            !valid ||
-            (mode === "deposit" && depositsPaused) ||
-            state === "signing" ||
-            state === "submitting"
-          }
+          disabled={!valid || busy}
           className="btn btn-primary mt-8 w-full !py-4 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {state === "signing" && (
+          {busy ? (
             <>
-              <DitherSpinner size={18} /> Waiting for your wallet
+              <DitherSpinner size={18} /> {PHASE_LABEL[phase] ?? "Working"}
             </>
+          ) : blocked ? (
+            "Deposits paused"
+          ) : mode === "deposit" ? (
+            "Deposit XLM"
+          ) : (
+            "Redeem nXLM"
           )}
-          {state === "submitting" && (
-            <>
-              <DitherSpinner size={18} /> Submitting
-            </>
-          )}
-          {(state === "idle" || state === "error" || state === "done") &&
-            (mode === "deposit"
-              ? depositsPaused
-                ? "Deposits paused"
-                : "Deposit XLM"
-              : "Redeem nXLM")}
         </button>
 
-        <AnimatePresence>
-          {state === "error" && (
+        <AnimatePresence mode="wait">
+          {error && (
             <motion.p
+              key="error"
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: DURATION.base, ease: ENTER }}
               className="mt-5 border border-ember/30 bg-ember/[0.06] px-4 py-3 text-sm leading-relaxed text-ink-dim"
             >
-              <span className="text-ember">Not wired up yet.</span> Signing lands with the contract
-              integration. The amounts and previews above are calculated for real.
+              {error}
             </motion.p>
+          )}
+
+          {txHash && !error && (
+            <motion.div
+              key="done"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: DURATION.base, ease: ENTER }}
+              className="mt-5 border border-signal-dim/40 bg-signal/[0.05] px-4 py-3"
+            >
+              <p className="flex items-center gap-2 text-sm text-ink">
+                <Check size={15} className="text-signal" strokeWidth={2.5} />
+                Confirmed on Stellar.
+              </p>
+              <a
+                href={explorerTx(txHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-signal underline-offset-4 hover:underline"
+              >
+                {txHash.slice(0, 16)}… <ArrowUpRight size={12} />
+              </a>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
