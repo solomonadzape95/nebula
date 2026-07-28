@@ -6,7 +6,7 @@ import { Grid } from "@/components/dither-kit/grid";
 import { Tooltip } from "@/components/dither-kit/tooltip";
 import { XAxis } from "@/components/dither-kit/x-axis";
 import { YAxis } from "@/components/dither-kit/y-axis";
-import { formatNumber } from "@/lib/format";
+import { formatCompact } from "@/lib/format";
 
 export interface ChartPoint {
   /** Short label for the x axis and tooltip. */
@@ -51,9 +51,13 @@ export function VaultChart({
     >
       <Grid />
       <XAxis dataKey="at" />
-      <YAxis tickFormatter={(value) => formatNumber(value, decimals)} />
+      {/* Abbreviated on both. A TVL tooltip reading "4,302.0512" is precision nobody reads off a
+          hover, and the box grows wide enough to sit over the line it is meant to be explaining.
+          `formatCompact` leaves anything under a thousand alone, so the share-price chart keeps the
+          decimals that are the whole point of it. */}
+      <YAxis tickFormatter={(value) => formatCompact(value, decimals)} />
       <Area dataKey="value" variant="gradient" />
-      <Tooltip labelKey="at" valueFormatter={(value) => formatNumber(value, decimals)} />
+      <Tooltip labelKey="at" valueFormatter={(value) => formatCompact(value, decimals)} />
     </AreaChart>
   );
 }

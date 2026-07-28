@@ -36,7 +36,7 @@ export function YieldChart() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <span className="label">Share price</span>
-            <p className="tabular mt-2 font-mono text-3xl text-signal sm:text-4xl">
+            <p className="figure mt-2 text-3xl text-signal sm:text-4xl">
               {last.toFixed(4)}
             </p>
           </div>

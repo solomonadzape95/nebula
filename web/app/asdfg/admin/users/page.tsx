@@ -62,7 +62,7 @@ export default async function AdminUsersPage() {
           </span>
         </div>
 
-        <p className="tabular mt-4 font-mono text-5xl leading-none text-signal">{total}</p>
+        <p className="figure mt-4 text-5xl leading-none text-signal">{total}</p>
 
         <div className="mt-7 h-2 w-full overflow-hidden bg-raised">
           <div

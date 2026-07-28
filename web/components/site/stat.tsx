@@ -13,7 +13,7 @@ export function Stat({ label, value, unit, hint, tone = "default" }: StatProps) 
       {/* Long values like a seven-decimal share price have to survive a 320px column, so the size
           steps down at the narrow end rather than wrapping mid-number. */}
       <span
-        className={`tabular font-mono text-[1.625rem] leading-none sm:text-3xl lg:text-[2.125rem] ${
+        className={`figure text-[1.625rem] leading-none sm:text-3xl lg:text-[2.125rem] ${
           tone === "signal" ? "text-signal" : "text-ink"
         }`}
       >

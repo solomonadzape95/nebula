@@ -27,6 +27,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Geist Pixel, for figures big enough to deserve it.
+ *
+ * A bitmap face is the right typographic answer to a design that is already a halftone print: the
+ * Circle variant draws its pixels as round dots, the same shape as the lattice in the logo and the
+ * dither field behind the hero. The number stops being text sitting on the texture and becomes part
+ * of it.
+ *
+ * Self-hosted because it is not on Google Fonts — Vercel ship it under the SIL Open Font License
+ * from their own repository, so `next/font/google` cannot reach it and `localFont` is the only
+ * route. One 27KB file, in line with the Satoshi weights above.
+ *
+ * It is deliberately *not* the default for every number. Rendered at 12–14px, where most figures in
+ * a table live, the gaps between the round pixels eat the stroke and the text goes faint and hard
+ * to read; by 20px it is crisp. So this is bound to a `.figure` class used on display figures only,
+ * and Geist Mono keeps the small ones.
+ */
+const geistPixel = localFont({
+  variable: "--font-pixel-face",
+  display: "swap",
+  src: [{ path: "./fonts/GeistPixel-Circle.woff2", weight: "400", style: "normal" }],
+});
+
 export const metadata: Metadata = {
   title: "Nebula · Liquid yield for XLM",
   description:
@@ -43,7 +66,7 @@ export default function RootLayout({
       lang="en"
       /* `dark` is fixed, not toggled: shadcn and dither-kit both branch on it, and Nebula has no
          light theme — the whole design is a dithered print on black. */
-      className={`dark ${satoshi.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${satoshi.variable} ${geistMono.variable} ${geistPixel.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <WalletProvider>{children}</WalletProvider>

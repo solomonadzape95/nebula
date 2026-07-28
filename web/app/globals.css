@@ -40,6 +40,9 @@
 
   --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Falls back to the mono stack, so a figure stays monospaced and aligned even in the moment
+     before the pixel face loads. */
+  --font-pixel: var(--font-pixel-face), var(--font-geist-mono), ui-monospace, monospace;
 
   /* Halftone cell. Every dot grid on the site is a multiple of this. */
   --dither-cell: 3px;
@@ -74,12 +77,48 @@
     background: var(--color-signal);
     color: var(--color-void);
   }
+
+  /* Anything clickable says so.
+
+     Tailwind v3's preflight set `cursor: pointer` on buttons; v4 dropped it and defers to the
+     browser, whose default for `<button>` is an arrow. The effect was that every button on the
+     site — wallet rows, the deposit tabs, the rating picker, menu triggers — looked inert on
+     hover, which reads as "not clickable yet" rather than as a style choice. Restored here as one
+     rule rather than a `cursor-pointer` on thirty elements, because it is one cause.
+
+     Disabled buttons are excluded: the arrow is correct there, since the control genuinely will
+     not respond. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
 }
 
 @utility tabular {
   /* Numbers must never reflow as they tick. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* ── Display figures ────────────────────────────────────────────────────
+   Geist Pixel, for the numbers the page is actually about: share price, TVL,
+   the count on a stat tile, the figure in a hero.
+
+   Deliberately not applied to every number on the site. The Circle variant
+   draws each pixel as a round dot, which is the same mark the dither lattice
+   is made of and looks superb at size — but at the 12–14px a table cell lives
+   at, the gaps between those dots eat the stroke and the figure goes faint.
+   So this is opt-in per element rather than a global mono override, and
+   anything small keeps Geist Mono.
+
+   Slight negative tracking because bitmap glyphs are drawn on a fixed grid and
+   set a touch loose next to Satoshi at display sizes. */
+@utility figure {
+  font-family: var(--font-pixel);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
 }
 
 @layer components {

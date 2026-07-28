@@ -249,7 +249,7 @@ function Figure({
     <div>
       <span className="label">{label}</span>
       <p
-        className={`tabular mt-2 font-mono text-3xl ${signal ? "text-signal" : "text-ink"}`}
+        className={`figure mt-2 text-3xl ${signal ? "text-signal" : "text-ink"}`}
       >
         {value === null ? "—" : formatNumber(value, 4)}{" "}
         <span className="text-base text-ink-faint">{unit}</span>

@@ -137,7 +137,7 @@ function ChartCard({
   return (
     <div className="bg-void p-8 sm:p-10">
       <span className="label">{title}</span>
-      <p className="tabular mt-3 font-mono text-3xl text-signal sm:text-4xl">{value}</p>
+      <p className="figure mt-3 text-3xl text-signal sm:text-4xl">{value}</p>
       <div className="mt-8 h-56">
         <VaultChart data={data} label={title} decimals={decimals} />
       </div>
@@ -242,7 +242,7 @@ function AllocationRow({
     <div className="bg-void p-8">
       <div className="flex items-baseline justify-between gap-4">
         <span className="text-base text-ink">{label}</span>
-        <span className="tabular font-mono text-xl text-ink sm:text-2xl">
+        <span className="figure text-xl text-ink sm:text-2xl">
           {formatStroops(amount, 2)} <span className="text-sm text-ink-faint">XLM</span>
         </span>
       </div>

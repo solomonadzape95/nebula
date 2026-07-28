@@ -134,7 +134,7 @@ function Step({
     <div className="bg-void p-6">
       <span className="label">{label}</span>
       <p
-        className={`tabular mt-3 font-mono text-3xl leading-none ${
+        className={`figure mt-3 text-3xl leading-none ${
           tone === "signal" ? "text-signal" : "text-ink"
         }`}
       >

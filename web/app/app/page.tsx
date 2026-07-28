@@ -65,7 +65,7 @@ function VaultPanel({ vault }: { vault: VaultState | null }) {
     <div className="panel p-7 sm:p-9">
       <span className="label">Share price</span>
 
-      <p className="tabular mt-5 font-mono text-4xl leading-none text-signal sm:text-5xl">
+      <p className="figure mt-5 text-4xl leading-none text-signal sm:text-5xl">
         {vault ? formatStroops(vault.sharePrice, 7) : "—"}
       </p>
       <p className="mt-3 text-sm text-ink-dim">XLM per nXLM, and it only moves upward.</p>
@@ -136,7 +136,7 @@ function PriceCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <span className="label">History</span>
-          <p className="tabular mt-3 font-mono text-2xl text-signal sm:text-3xl">
+          <p className="figure mt-3 text-2xl text-signal sm:text-3xl">
             {vault ? formatStroops(vault.sharePrice, 7) : "—"}
           </p>
         </div>
