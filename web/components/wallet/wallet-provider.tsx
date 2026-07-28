@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { NETWORK } from "@/lib/contracts";
+import { endSession } from "@/lib/session-actions";
 import { loadKit } from "@/lib/wallet-kit";
 
 const STORAGE_KEY = "nebula.wallet";
@@ -85,6 +86,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setStatus("idle");
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
+
+    // Drop the proven-ownership cookie too. It is httpOnly and outlives the browser tab, so a
+    // session that survived a disconnect would leave the next person at this machine still able to
+    // write as the wallet that walked away.
+    void endSession().catch(() => {});
+
     void loadKit()
       .then((kit) => kit.disconnect())
       .catch(() => {

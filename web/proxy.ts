@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { ADMIN_COOKIE, ADMIN_ROOT } from "@/lib/admin";
+import { verify } from "@/lib/signed-cookie";
 
 const GATE_PATH = `${ADMIN_ROOT}/locked`;
 
@@ -16,16 +17,18 @@ const GATE_PATH = `${ADMIN_ROOT}/locked`;
  * Rewriting here means the page function is never invoked, so there is nothing to leak. Next 16
  * calls this Proxy; it is the same thing Middleware was.
  *
- * This is an optimistic check on cookie presence, which is the documented role for this layer. The
- * cookie is `httpOnly` and only ever set by the server action that compares the password, so
- * presence is meaningful; the layout still verifies it before rendering anything.
+ * The signature is verified here rather than trusting the cookie's presence. Presence used to be
+ * the whole test, and since the expected value was the constant `"1"`, sending the header by hand
+ * was enough — `httpOnly` constrains page scripts, not an attacker's HTTP client. The layout checks
+ * the same signature again, so a matcher that ever stopped covering a route still finds a closed
+ * door behind it.
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === GATE_PATH) return NextResponse.next();
 
-  const authorised = request.cookies.get(ADMIN_COOKIE)?.value === "1";
+  const authorised = (await verify(request.cookies.get(ADMIN_COOKIE)?.value)) === "admin";
   if (authorised) return NextResponse.next();
 
   // A rewrite rather than a redirect: the URL stays put, so unlocking lands you back where you

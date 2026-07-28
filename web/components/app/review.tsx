@@ -11,6 +11,7 @@ import { DitherSpinner } from "@/components/ui/dither-loader";
 import { useWallet } from "@/components/wallet/wallet-provider";
 import { DURATION, ENTER, EXIT, MORPH_SPRING } from "@/lib/easing";
 import { submitReview } from "@/lib/profile-actions";
+import { ensureWalletSession } from "@/lib/session-client";
 
 interface ReviewValue {
   open: () => void;
@@ -126,7 +127,6 @@ function ReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   const { address } = useWallet();
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
-  const [deposited, setDeposited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -146,7 +146,17 @@ function ReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     if (!address) return;
     setBusy(true);
     setError(null);
-    const result = await submitReview({ address, rating, body, deposited });
+
+    // A review is attributed to a wallet, so the wallet has to prove it is here. Without this the
+    // server had only the address we sent it, and anyone could file a review under someone else's.
+    const session = await ensureWalletSession(address);
+    if (!session.ok) {
+      setBusy(false);
+      setError(session.error ?? "Could not verify the wallet.");
+      return;
+    }
+
+    const result = await submitReview({ rating, body });
     setBusy(false);
     if (result.ok) {
       setDone(true);
@@ -155,7 +165,6 @@ function ReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         setDone(false);
         setRating(0);
         setBody("");
-        setDeposited(false);
       }, 1600);
     } else {
       setError(result.error ?? "Could not save that.");
@@ -248,16 +257,9 @@ function ReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                     className="mt-3 w-full resize-none border border-edge bg-void/60 p-4 text-base text-ink transition-colors outline-none placeholder:text-ink-faint focus:border-signal"
                   />
 
-                  <label className="mt-5 flex cursor-pointer items-center gap-3 text-sm text-ink-dim">
-                    <input
-                      type="checkbox"
-                      checked={deposited}
-                      onChange={(e) => setDeposited(e.target.checked)}
-                      className="size-4 accent-[var(--color-signal)]"
-                    />
-                    I managed to complete a deposit
-                  </label>
-
+                  {/* Whether they got a deposit through is read off their on-chain history rather
+                      than asked. It was a checkbox, which made the admin panel's completion figure
+                      a self-report, and it is one less question in a form nobody wants to fill in. */}
                   <button
                     type="button"
                     onClick={submit}

@@ -20,6 +20,9 @@ export const ADMIN_ROOT = `/${ADMIN_PREFIX}/admin`;
 
 export const ADMIN_COOKIE = "nebula_admin";
 
+/** Eight hours: long enough for a working session, short enough that a stolen cookie expires. */
+export const ADMIN_SESSION_TTL = 60 * 60 * 8;
+
 export function isAdminAddress(address: string | null | undefined): boolean {
   return Boolean(address) && ADMIN_ADDRESSES.includes(address!);
 }

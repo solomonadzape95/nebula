@@ -42,6 +42,7 @@ export type VaultEvent =
       cap: bigint;
       paused: boolean;
     }
+  | { kind: "strategy_loss"; strategy: string; amount: bigint }
   | { kind: "strategy_removed"; strategy: string; deployed: bigint }
   | { kind: "deposits_paused"; paused: boolean }
   | { kind: "unknown"; topic: string; raw: unknown };
@@ -55,11 +56,34 @@ export interface IndexedEvent {
   event: VaultEvent;
 }
 
-/** `scValToNative` yields BigInt for i128; nothing else in these payloads is 128-bit. */
+const I128_MAX = (1n << 127n) - 1n;
+const I128_MIN = -(1n << 127n);
+
+/**
+ * `scValToNative` yields BigInt for i128; nothing else in these payloads is 128-bit.
+ *
+ * Range-checked, because the type on the wire is whatever the emitting contract chose. The vault
+ * types every monetary field as `i128` and the columns are `numeric(40,0)` to match, but a `u256`
+ * or a numeric string would sail through `BigInt()` and produce a 78-digit value that Postgres
+ * rejects on insert. Failing here rather than there matters: a decode failure skips one event,
+ * whereas an insert failure used to abort the whole page before the cursor advanced, so the same
+ * row was refetched and failed again on every subsequent run.
+ */
 function big(value: unknown): bigint {
-  if (typeof value === "bigint") return value;
-  if (typeof value === "number" || typeof value === "string") return BigInt(value);
-  throw new Error(`expected an integer, got ${typeof value}: ${String(value)}`);
+  const parsed =
+    typeof value === "bigint"
+      ? value
+      : typeof value === "number" || typeof value === "string"
+        ? BigInt(value)
+        : null;
+
+  if (parsed === null) {
+    throw new Error(`expected an integer, got ${typeof value}: ${String(value)}`);
+  }
+  if (parsed < I128_MIN || parsed > I128_MAX) {
+    throw new Error(`integer outside the i128 range: ${parsed}`);
+  }
+  return parsed;
 }
 
 function num(value: unknown): number {
@@ -134,6 +158,10 @@ function decodeEvent(topics: xdr.ScVal[], value: xdr.ScVal): VaultEvent {
       return { kind: "allocate", strategy: str(subject), amount: big(data) };
     case "unwind":
       return { kind: "unwind", strategy: str(subject), amount: big(data) };
+    // Emitted when a venue is marked down. Recorded so a share price that fell has a reason
+    // attached to it, rather than looking like a fault in the series.
+    case "strategy_loss":
+      return { kind: "strategy_loss", strategy: str(subject), amount: big(data) };
     case "strategy_added": {
       const f = fields();
       return {

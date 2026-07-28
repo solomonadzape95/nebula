@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 
 import { useWallet } from "@/components/wallet/wallet-provider";
 import { fetchProfile, saveProfile, type SaveResult } from "@/lib/profile-actions";
+import { ensureWalletSession } from "@/lib/session-client";
 import type { Profile } from "@/lib/profile";
 
 interface IdentityValue {
@@ -53,7 +54,13 @@ export function IdentityProvider({ children }: { children: React.ReactNode }) {
   const save = useCallback(
     async (username: string, hue: number): Promise<SaveResult> => {
       if (!address) return { ok: false, error: "Connect a wallet first." };
-      const result = await saveProfile(address, username, hue);
+
+      // The server takes the address from the session, not from us, so the wallet has to prove it
+      // holds this one before the write will land. First save of the week asks for a signature.
+      const session = await ensureWalletSession(address);
+      if (!session.ok) return { ok: false, error: session.error ?? "Could not verify the wallet." };
+
+      const result = await saveProfile(username, hue);
       if (result.ok) setState({ address, profile: result.profile });
       return result;
     },

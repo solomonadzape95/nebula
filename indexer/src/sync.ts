@@ -6,14 +6,6 @@ import { decode, jsonSafe, type IndexedEvent } from "./decode.js";
 
 const PAGE_LIMIT = 200;
 
-/**
- * Ledgers of headroom above the RPC's reported oldest ledger.
- *
- * Retention advances while a sync is running, so a `startLedger` that was legal when it was
- * computed can be rejected moments later. The margin costs nothing — those ledgers are re-scanned,
- * and ingestion is idempotent.
- */
-const RETENTION_MARGIN = 120;
 
 /**
  * Ledger sequence encoded in a paging cursor.
@@ -35,6 +27,8 @@ function cursorLedger(cursor: string): number {
 
 export interface SyncResult {
   ingested: number;
+  /** Events that arrived but could not be stored. Non-zero means the data set has holes in it. */
+  skipped: number;
   /** How far the sync actually read — the cursor position, not where the last event happened. */
   syncedThrough: number;
   /** Ledger of the most recent event ingested, which may be far behind the head. */
@@ -78,7 +72,17 @@ async function writeState(
  * ingested range is harmless. That matters more than it sounds: a cron-driven indexer will
  * routinely re-read the tail of the last page.
  */
-async function persist(db: Db, event: IndexedEvent): Promise<boolean> {
+async function persist(db: Db, config: Config, event: IndexedEvent): Promise<boolean> {
+  // The RPC request is filtered by contract id, so this should never fire. It is here because that
+  // filter is the only thing standing between the dashboard and a copycat contract emitting
+  // identically shaped events, and it is enforced by a server we do not run — RPC_URL is
+  // configurable and defaults to a public endpoint. Checking what arrived costs one comparison.
+  // It also stops a redeployed vault from silently merging its history with the old one.
+  if (event.contractId !== config.deployment.vault) {
+    console.warn(`  ! ignoring event ${event.id} from foreign contract ${event.contractId}`);
+    return false;
+  }
+
   const client = await db.connect();
   try {
     await client.query("BEGIN");
@@ -132,11 +136,14 @@ async function persist(db: Db, event: IndexedEvent): Promise<boolean> {
       );
     }
 
-    if (e.kind === "allocate" || e.kind === "unwind") {
+    if (e.kind === "allocate" || e.kind === "unwind" || e.kind === "strategy_loss") {
+      // A loss is recorded as its own direction rather than as an unwind: no capital came back to
+      // the reserve, which is exactly the distinction anyone reading the flow history needs.
+      const direction = e.kind === "strategy_loss" ? "loss" : e.kind;
       await client.query(
         `INSERT INTO strategy_flows (event_id, strategy, direction, amount, ledger_closed_at)
          VALUES ($1, $2, $3, $4, $5)`,
-        [event.id, e.strategy, e.kind, e.amount.toString(), at],
+        [event.id, e.strategy, direction, e.amount.toString(), at],
       );
     }
 
@@ -173,11 +180,16 @@ export async function sync(db: Db, config: Config): Promise<SyncResult> {
 
     // Resume just past the last ledger we indexed; on a genuinely fresh database fall back to the
     // oldest ledger RPC still holds.
+    //
+    // The floor is `oldestLedger` exactly. It used to be `oldestLedger + 120`, a margin meant to
+    // absorb retention advancing mid-sync — but as a `Math.max` lower bound it moved the start
+    // *forward*, so every backfill silently threw away the oldest ten minutes of vault history and
+    // overrode an operator's explicit START_LEDGER while doing it. Those ledgers were never
+    // requested, so idempotent ingestion could not recover them and RPC retention eventually made
+    // the loss permanent. If retention does advance past us mid-run, the request fails loudly and
+    // the next run re-probes, which is the better failure.
     const resumeFrom = state.lastLedger > 0 ? state.lastLedger + 1 : probe.oldestLedger;
-    startLedger = Math.max(
-      config.startLedger ?? resumeFrom,
-      probe.oldestLedger + RETENTION_MARGIN,
-    );
+    startLedger = Math.max(config.startLedger ?? resumeFrom, probe.oldestLedger);
 
     if (state.lastLedger > 0 && state.lastLedger + 1 < probe.oldestLedger) {
       gapDetected = true;
@@ -189,6 +201,7 @@ export async function sync(db: Db, config: Config): Promise<SyncResult> {
   }
 
   let ingested = 0;
+  let skipped = 0;
   let lastEventLedger = state.lastLedger;
   let latestLedger = 0;
 
@@ -203,12 +216,23 @@ export async function sync(db: Db, config: Config): Promise<SyncResult> {
     for (const raw of page.events) {
       const event = decode(raw);
       if (!event) continue;
-      if (await persist(db, event)) {
-        ingested += 1;
-        console.log(
-          `  + ${event.event.kind.padEnd(17)} ledger ${event.ledger}  ${event.txHash.slice(0, 12)}…`,
-        );
+
+      // One unwritable row must not take the sync down with it. The cursor is only saved after the
+      // loop, so an exception escaping here meant the same page was refetched on the next run and
+      // failed at the same row — forever, while `watch` mode logged a line and looked alive. Skip
+      // it, say so, and keep moving; the event stays in RPC's window if it needs reprocessing.
+      try {
+        if (await persist(db, config, event)) {
+          ingested += 1;
+          console.log(
+            `  + ${event.event.kind.padEnd(17)} ledger ${event.ledger}  ${event.txHash.slice(0, 12)}…`,
+          );
+        }
+      } catch (cause) {
+        skipped += 1;
+        console.warn(`  ! could not store event ${event.id}: ${(cause as Error).message}`);
       }
+
       lastEventLedger = Math.max(lastEventLedger, event.ledger);
     }
 
@@ -223,5 +247,5 @@ export async function sync(db: Db, config: Config): Promise<SyncResult> {
 
   const syncedThrough = cursor ? cursorLedger(cursor) : lastEventLedger;
   await writeState(db, cursor, syncedThrough, oldestAvailable);
-  return { ingested, syncedThrough, lastEventLedger, latestLedger, gapDetected };
+  return { ingested, skipped, syncedThrough, lastEventLedger, latestLedger, gapDetected };
 }

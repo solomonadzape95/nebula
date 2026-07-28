@@ -25,6 +25,12 @@ async function runSync(db: Db, config: ReturnType<typeof loadConfig>): Promise<v
       `of ${result.latestLedger}` +
       (behind > 0 ? ` (${behind} behind)` : " (caught up)"),
   );
+  // Both of these mean the stored history is missing something, so a scheduled run should fail
+  // rather than report success on an incomplete data set.
+  if (result.skipped > 0) {
+    console.warn(`  ! ${result.skipped} event(s) could not be stored`);
+    process.exitCode = 1;
+  }
   if (result.gapDetected) {
     process.exitCode = 1;
   }
