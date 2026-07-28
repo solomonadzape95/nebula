@@ -6,6 +6,7 @@ import { ImageField } from "@/components/shader/image-field";
 import { DitherIcon } from "@/components/site/dither-icon";
 import { DitherText } from "@/components/site/dither-text";
 import { Glyph } from "@/components/site/glyph";
+import { Logo } from "@/components/site/logo";
 import { LiveBadge } from "@/components/site/live-badge";
 import { Nav } from "@/components/site/nav";
 import { NxlmDemo } from "@/components/site/nxlm-demo";
@@ -359,7 +360,12 @@ function Footer() {
 
       <div className="relative mx-auto w-full max-w-app px-5 pb-8 sm:px-8">
         <div className="flex flex-col gap-4 border-t border-edge/60 pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-mono text-sm tracking-[0.2em] text-ink-dim uppercase">Nebula</span>
+          <span className="flex items-center gap-3">
+            <Logo size={24} cell={1.6} className="text-signal" />
+            <span className="font-mono text-sm tracking-[0.2em] text-ink-dim uppercase">
+              Nebula
+            </span>
+          </span>
           <span className="font-mono text-xs text-ink-faint">
             © {new Date().getFullYear()} Nebula. All rights reserved, all wrongs pardoned.
           </span>

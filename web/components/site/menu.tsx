@@ -102,8 +102,6 @@ export function Menu({
               exit={{ opacity: 0 }}
               transition={{ duration: DURATION.base, ease: EXIT }}
               onClick={() => setOpen(false)}
-              /* Above the navbar so the bar dims with everything else instead of floating on top
-                 of the scrim. */
               className="fixed inset-0 z-60 bg-void/80 backdrop-blur-sm"
             />
 
