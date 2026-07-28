@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import { ImageField } from "@/components/shader/image-field";
 import { DitherProgress } from "@/components/ui/dither-loader";
-import { RollingNumber } from "@/components/ui/rolling-number";
 
 const DEFAULT_DEPOSIT = 100;
 const MAX_DEPOSIT = 1_000_000;
@@ -97,7 +96,7 @@ export function NxlmDemo() {
           <div className="flex items-baseline justify-between gap-4">
             <span className="label">Earned in {elapsed.toFixed(1)}s</span>
             <span className="tabular font-mono text-xl text-signal sm:text-2xl">
-              +<RollingNumber value={formatMoney(earned)} /> XLM
+              +{formatMoney(earned)} XLM
             </span>
           </div>
           <DitherProgress value={ticks / CYCLE_TICKS} className="mt-5" />
@@ -168,7 +167,7 @@ function DemoRow({
             signal ? "text-signal" : frozen ? "text-ink" : "text-ink-dim"
           }`}
         >
-          <RollingNumber value={value} />
+          {value}
         </span>
         {note && (
           <span

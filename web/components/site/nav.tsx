@@ -61,9 +61,9 @@ export function Nav() {
           }`}
         />
         <nav className="relative mx-auto flex h-18 max-w-app items-center px-5 sm:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={26} cell={1.6} className="text-signal" />
-            <span className="font-mono text-lg tracking-[0.2em] uppercase">Nebula</span>
+          <Link href="/" className="brand flex items-center gap-3.5">
+            <Logo size={38} cell={1.8} className="brand-mark text-signal" />
+            <span className="brand-name font-mono text-lg tracking-[0.2em] uppercase">Nebula</span>
           </Link>
         </nav>
       </header>

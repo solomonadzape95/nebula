@@ -360,12 +360,12 @@ function Footer() {
 
       <div className="relative mx-auto w-full max-w-app px-5 pb-8 sm:px-8">
         <div className="flex flex-col gap-4 border-t border-edge/60 pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <span className="flex items-center gap-3">
-            <Logo size={24} cell={1.6} className="text-signal" />
-            <span className="font-mono text-sm tracking-[0.2em] text-ink-dim uppercase">
+          <Link href="/" className="brand flex w-fit items-center gap-3">
+            <Logo size={32} cell={1.8} className="brand-mark text-signal" />
+            <span className="brand-name font-mono text-sm tracking-[0.2em] text-ink-dim uppercase">
               Nebula
             </span>
-          </span>
+          </Link>
           <span className="font-mono text-xs text-ink-faint">
             © {new Date().getFullYear()} Nebula. All rights reserved, all wrongs pardoned.
           </span>

@@ -49,9 +49,12 @@ export function Logo({
 
         {dithered && (
           <>
+            {/* Dot radius is a large fraction of the cell so the mark stays dense. A sparser
+                lattice greys it out, and at logo scale the mark must read as the same green as
+                the buttons rather than a muted version of it. */}
             <pattern id={`${uid}-dots`} width={cell} height={cell} patternUnits="userSpaceOnUse">
               <rect width={cell} height={cell} fill="black" />
-              <circle cx={cell / 2} cy={cell / 2} r={cell * 0.3} fill="white" />
+              <circle cx={cell / 2} cy={cell / 2} r={cell * 0.4} fill="white" />
             </pattern>
             <mask id={`${uid}-halftone`}>
               <rect width="40" height="40" fill={`url(#${uid}-dots)`} />

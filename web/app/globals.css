@@ -197,6 +197,26 @@
     color: var(--color-ink-faint);
   }
 
+  /* ── Brand lockup ─────────────────────────────────────────────────────
+     Hovering the mark and name lights them the way the primary button lights:
+     a phosphor bloom rather than a colour change. */
+  .brand-mark,
+  .brand-name {
+    transition:
+      filter 200ms ease,
+      color 200ms ease,
+      text-shadow 200ms ease;
+  }
+
+  .brand:hover .brand-mark {
+    filter: drop-shadow(0 0 14px var(--color-signal));
+  }
+
+  .brand:hover .brand-name {
+    color: var(--color-signal);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--color-signal) 55%, transparent);
+  }
+
   /* ── Surfaces ─────────────────────────────────────────────────────── */
   .panel {
     background: color-mix(in srgb, var(--color-surface) 72%, transparent);

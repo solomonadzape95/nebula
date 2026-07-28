@@ -14,6 +14,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 import { DURATION, ENTER, EXIT, MORPH_SPRING } from "@/lib/easing";
 
@@ -39,16 +40,21 @@ const PAGES: Item[] = [
 /**
  * The panel expands out of the trigger's top-right corner.
  *
- * This deliberately does *not* use `layoutId`. A shared-layout morph between a 48px button and a
- * full panel left the trigger's border painted underneath as an empty box, and interpolating
- * wildly different aspect ratios distorted the contents on the way. Scaling from a pinned
- * `transformOrigin` gives the same "it grew from the button" reading with none of that, and the
- * trigger simply fades out as the panel arrives.
+ * **The scrim and panel are portalled to `document.body`, and that is load-bearing.** A `transform`
+ * on any ancestor — including the `translate-y-0` that the navbar uses for its hide-on-scroll —
+ * makes that ancestor the containing block for `position: fixed` descendants. Rendered in place,
+ * `fixed inset-0` on the scrim resolved against the ~72px navigation bar rather than the viewport,
+ * which painted a full-width dark strip across the top of the page, left everything below it
+ * undimmed, and meant clicks outside that strip never reached the scrim at all. The portal is what
+ * escapes it; no amount of z-index would have.
  *
- * Each `AnimatePresence` wraps exactly one keyed motion element. Putting the scrim and panel
- * together inside a fragment — the arrangement this previously had — gives AnimatePresence a
- * fragment as its child, which it cannot track: exit animations never fire, the elements never
- * unmount, and the menu stops responding to Escape and outside clicks.
+ * It deliberately does *not* use `layoutId`. A shared-layout morph between a 48px button and a full
+ * panel left the trigger's border painted underneath as an empty box, and interpolating that aspect
+ * ratio distorted the contents in flight. Scaling from a pinned `transformOrigin` reads the same
+ * with none of that, and the trigger fades out as the panel arrives.
+ *
+ * Each `AnimatePresence` wraps exactly one keyed motion element. A fragment as its only child is
+ * untrackable, so exit animations never fire and the elements never unmount.
  */
 export function Menu({
   open,
@@ -90,60 +96,83 @@ export function Menu({
         <MenuIcon size={22} strokeWidth={2} />
       </motion.button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="scrim"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: DURATION.base, ease: EXIT }}
-            onClick={() => onOpenChange(false)}
-            className="fixed inset-0 z-60 bg-void/80 backdrop-blur-sm"
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="panel"
-            initial={{ opacity: 0, scale: 0.82 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9, transition: { duration: DURATION.fast, ease: EXIT } }}
-            transition={MORPH_SPRING}
-            // Pinned to the trigger's corner so the growth reads as coming from the button.
-            style={{ transformOrigin: "top right" }}
-            className="panel absolute top-0 right-0 z-70 w-[min(86vw,27rem)] origin-top-right overflow-hidden"
-          >
-            <div className="flex items-center justify-end px-6 pt-4">
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                aria-label="Close menu"
-                className="flex size-12 items-center justify-center text-ink-dim transition-colors hover:text-ink"
-              >
-                <X size={28} strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="p-4 pt-1 pb-6">
-              <Group title="This page" items={SECTIONS} onNavigate={() => onOpenChange(false)} />
-              <Group title="More" items={PAGES} onNavigate={() => onOpenChange(false)} />
-
-              <div className="mt-4 border-t border-edge px-3 pt-6">
-                <Link
-                  href="/app"
+      {typeof document !== "undefined" &&
+        createPortal(
+          <>
+            <AnimatePresence>
+              {open && (
+                <motion.div
+                  key="scrim"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: DURATION.base, ease: EXIT }}
                   onClick={() => onOpenChange(false)}
-                  className="btn btn-primary w-full !py-4 !text-base"
+                  className="fixed inset-0 z-60 bg-void/80 backdrop-blur-sm"
+                />
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {open && (
+                /* Full-width row, laid out through the same container as the navbar so the panel
+                   lines up with the page margin rather than the viewport edge. Click-through
+                   except for the panel itself. */
+                <div
+                  key="panel-row"
+                  className="pointer-events-none fixed inset-x-0 top-3 z-70"
                 >
-                  Launch app
-                </Link>
-              </div>
-            </div>
-          </motion.div>
+                  <div className="mx-auto flex max-w-app justify-end px-5 sm:px-8">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.82 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.9,
+                        transition: { duration: DURATION.fast, ease: EXIT },
+                      }}
+                      transition={MORPH_SPRING}
+                      // Pinned to the trigger's corner so the growth reads as coming from it.
+                      style={{ transformOrigin: "top right" }}
+                      className="panel pointer-events-auto w-[min(86vw,27rem)] overflow-hidden"
+                    >
+                      <div className="flex items-center justify-end px-6 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => onOpenChange(false)}
+                          aria-label="Close menu"
+                          className="flex size-12 items-center justify-center text-ink-dim transition-colors hover:text-ink"
+                        >
+                          <X size={28} strokeWidth={2} />
+                        </button>
+                      </div>
+
+                      <div className="p-4 pt-1 pb-6">
+                        <Group
+                          title="This page"
+                          items={SECTIONS}
+                          onNavigate={() => onOpenChange(false)}
+                        />
+                        <Group title="More" items={PAGES} onNavigate={() => onOpenChange(false)} />
+
+                        <div className="mt-4 border-t border-edge px-3 pt-6">
+                          <Link
+                            href="/app"
+                            onClick={() => onOpenChange(false)}
+                            className="btn btn-primary w-full !py-4 !text-base"
+                          >
+                            Launch app
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              )}
+            </AnimatePresence>
+          </>,
+          document.body,
         )}
-      </AnimatePresence>
     </>
   );
 }
