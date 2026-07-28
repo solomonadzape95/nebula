@@ -119,24 +119,33 @@ export function AppNavMenu({ items, pathname }: { items: NavItem[]; pathname: st
                               ease: ENTER,
                             }}
                           >
-                            <Link
-                              href={item.href}
-                              onClick={() => setOpen(false)}
-                              aria-current={active ? "page" : undefined}
-                              className={`flex items-center gap-4 px-4 py-4 transition-colors ${
-                                active ? "bg-raised text-signal" : "text-ink-dim hover:bg-raised"
-                              }`}
-                            >
-                              <Icon
-                                icon={item.icon}
-                                size={20}
-                                className={active ? "text-signal" : "text-ink-faint"}
-                              />
-                              <span className="flex-1 font-mono text-sm tracking-wider uppercase">
-                                {item.label}
-                              </span>
-                              {active && <Icon icon={Check} size={16} strokeWidth={2.5} />}
-                            </Link>
+                            {active ? (
+                              // Closing the sheet is the only useful thing left to do from the
+                              // row you are already on, so that is all it does.
+                              <button
+                                type="button"
+                                onClick={() => setOpen(false)}
+                                aria-current="page"
+                                className="flex w-full items-center gap-4 bg-raised px-4 py-4 text-left text-signal"
+                              >
+                                <Icon icon={item.icon} size={20} className="text-signal" />
+                                <span className="flex-1 font-mono text-sm tracking-wider uppercase">
+                                  {item.label}
+                                </span>
+                                <Icon icon={Check} size={16} />
+                              </button>
+                            ) : (
+                              <Link
+                                href={item.href}
+                                onClick={() => setOpen(false)}
+                                className="flex items-center gap-4 px-4 py-4 text-ink-dim transition-colors hover:bg-raised"
+                              >
+                                <Icon icon={item.icon} size={20} className="text-ink-faint" />
+                                <span className="flex-1 font-mono text-sm tracking-wider uppercase">
+                                  {item.label}
+                                </span>
+                              </Link>
+                            )}
                           </motion.div>
                         );
                       })}

@@ -16,6 +16,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 
@@ -214,10 +215,14 @@ function MenuRow({
   onNavigate: () => void;
 }) {
   const { icon: Glyph } = item;
+  const pathname = usePathname();
+  // Anchors into the current page still scroll, so only whole-page destinations are inert.
+  const current = !item.href.startsWith("/#") && pathname === item.href;
 
   return (
     <motion.a
-      href={item.href}
+      href={current ? undefined : item.href}
+      aria-current={current ? "page" : undefined}
       onClick={onNavigate}
       initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
@@ -225,7 +230,9 @@ function MenuRow({
       whileHover="hover"
       whileFocus="hover"
       whileTap={{ scale: 0.985 }}
-      className="group flex items-center gap-5 px-3 py-4 outline-none transition-colors hover:bg-raised focus-visible:bg-raised"
+      className={`group flex items-center gap-5 px-3 py-4 outline-none transition-colors ${
+        current ? "cursor-default bg-raised" : "hover:bg-raised focus-visible:bg-raised"
+      }`}
     >
       <span className="relative flex size-11 shrink-0 items-center justify-center">
         {/* Dithered and dim: the resting state. */}

@@ -110,16 +110,26 @@ function Shell({
         <nav className="mx-auto hidden max-w-app gap-1 px-3 sm:px-6 md:flex">
           {items.map((item) => {
             const active = pathname === item.href;
-            return (
+            const shared =
+              "flex shrink-0 items-center gap-2 border-b-2 px-4 py-3.5 font-mono text-xs tracking-wider uppercase transition-colors";
+
+            // The current tab is a span, not a link. Navigating to where you already are re-runs
+            // every server read on the page for an identical result, and the brief loading state
+            // that follows reads as though something went wrong.
+            return active ? (
+              <span
+                key={item.href}
+                aria-current="page"
+                className={`${shared} cursor-default border-signal text-signal`}
+              >
+                <Icon icon={item.icon} size={16} />
+                {item.label}
+              </span>
+            ) : (
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3.5 font-mono text-xs tracking-wider uppercase transition-colors ${
-                  active
-                    ? "border-signal text-signal"
-                    : "border-transparent text-ink-faint hover:text-ink"
-                }`}
+                className={`${shared} border-transparent text-ink-faint hover:text-ink`}
               >
                 <Icon icon={item.icon} size={16} />
                 {item.label}
