@@ -9,6 +9,21 @@ export type StellarNetwork = "testnet" | "mainnet";
 
 export const NETWORK: StellarNetwork = "testnet";
 
+/**
+ * The network passphrase every signature is bound to.
+ *
+ * Written out rather than imported from `Networks` in the SDK, because this module is pulled into
+ * client components for `shortAddress` and the explorer links — and importing the SDK here would
+ * drag it into every one of those bundles for two string constants. These values are part of the
+ * protocol and have not changed since 2015.
+ */
+const PASSPHRASES: Record<StellarNetwork, string> = {
+  mainnet: "Public Global Stellar Network ; September 2015",
+  testnet: "Test SDF Network ; September 2015",
+};
+
+export const NETWORK_PASSPHRASE = PASSPHRASES[NETWORK];
+
 export const VAULT_ID = "CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO";
 export const SHARE_TOKEN_ID = "CAVRFADYBNPLRL734VGRS6FW4LXRDEKRZZDQCSMB7VXCFZPDZ5JB3SN2";
 export const STRATEGY_ID = "CDSQOX3GQSE4HEM5IWKEMIZ56JHMTPFN3ZUN5PI4TH5WVFYGL5DAYQAR";
