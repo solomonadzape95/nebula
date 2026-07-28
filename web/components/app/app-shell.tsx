@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { AppNavMenu } from "@/components/app/app-nav-menu";
 import { Logo } from "@/components/site/logo";
 import { POSITION, xlm } from "@/lib/mock";
 import { shortAddress } from "@/lib/contracts";
@@ -68,12 +69,16 @@ export function AppShell({
             )}
           </div>
 
-          <ConnectionPill />
+          <div className="flex items-center gap-3">
+            <AppNavMenu items={items} pathname={pathname} />
+            <ConnectionPill />
+          </div>
         </div>
 
-        {/* Tabs sit in the bar rather than a sidebar. Three destinations do not justify a rail,
-            and this survives a 375px screen without a drawer. */}
-        <nav className="mx-auto flex max-w-app gap-1 overflow-x-auto px-3 sm:px-6">
+        {/* Tabs from `md` up, where they fit without scrolling. Below that they collapse into
+            AppNavMenu: a horizontally scrolling tab strip hides destinations off the edge with no
+            affordance saying so, which is worse than a menu that lists all of them. */}
+        <nav className="mx-auto hidden max-w-app gap-1 px-3 sm:px-6 md:flex">
           {items.map((item) => {
             const active = pathname === item.href;
             return (
