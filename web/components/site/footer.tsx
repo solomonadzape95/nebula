@@ -18,7 +18,7 @@ const COLUMNS = [
     links: [
       { href: "/how-it-works", label: "How it works" },
       { href: "/faq", label: "FAQ" },
-      { href: "/#yield", label: "Where yield comes from" },
+      { href: "/#nxlm", label: "What is nXLM" },
     ],
   },
 ];
@@ -121,9 +121,25 @@ export function SiteFooter() {
               Nebula
             </span>
           </Link>
-          <span className="font-mono text-xs text-ink-faint">
-            © {new Date().getFullYear()} Nebula. All rights reserved, all wrongs pardoned.
-          </span>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
+            <div className="flex gap-6">
+              <Link
+                href="/terms"
+                className="font-mono text-xs text-ink-faint transition-colors hover:text-signal"
+              >
+                Terms
+              </Link>
+              <Link
+                href="/privacy"
+                className="font-mono text-xs text-ink-faint transition-colors hover:text-signal"
+              >
+                Privacy
+              </Link>
+            </div>
+            <span className="font-mono text-xs text-ink-faint">
+              © {new Date().getFullYear()} Nebula. All rights reserved, all wrongs pardoned.
+            </span>
+          </div>
         </div>
       </div>
     </footer>

@@ -27,9 +27,9 @@ interface Item {
 }
 
 const SECTIONS: Item[] = [
-  { href: "#how", label: "How it works", icon: LayoutGrid, hint: "Three steps" },
-  { href: "#nxlm", label: "What is nXLM", icon: Coins, hint: "The receipt token" },
-  { href: "#yield", label: "Where yield comes from", icon: LineChart, hint: "Blend lending" },
+  { href: "/#how", label: "How it works", icon: LayoutGrid, hint: "Three steps" },
+  { href: "/#nxlm", label: "What is nXLM", icon: Coins, hint: "The receipt token" },
+  { href: "/#yield", label: "Where yield comes from", icon: LineChart, hint: "Blend lending" },
 ];
 
 const PAGES: Item[] = [
@@ -151,7 +151,7 @@ export function Menu({
 
                       <div className="p-4 pt-1 pb-6">
                         <Group
-                          title="This page"
+                          title="The essentials"
                           items={SECTIONS}
                           onNavigate={() => onOpenChange(false)}
                         />

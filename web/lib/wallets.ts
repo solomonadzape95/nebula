@@ -13,6 +13,8 @@ export interface Wallet {
   id: string;
   name: string;
   blurb: string;
+  /** Self-hosted copy of the canonical icon Stellar Wallets Kit ships for this wallet. */
+  icon: string;
   /** Where to get it, for people who have none installed. */
   url: string;
   platforms: string;
@@ -22,6 +24,7 @@ export interface Wallet {
 export const WALLETS: Wallet[] = [
   {
     id: "freighter",
+    icon: "/wallets/freighter.png",
     name: "Freighter",
     blurb: "The most widely used Stellar extension. Maintained by SDF.",
     url: "https://freighter.app",
@@ -30,6 +33,7 @@ export const WALLETS: Wallet[] = [
   },
   {
     id: "lobstr",
+    icon: "/wallets/lobstr.png",
     name: "Lobstr",
     blurb: "Popular mobile wallet. Connects by scanning a code.",
     url: "https://lobstr.co",
@@ -37,6 +41,7 @@ export const WALLETS: Wallet[] = [
   },
   {
     id: "xbull",
+    icon: "/wallets/xbull.png",
     name: "xBull",
     blurb: "Extension and web wallet with hardware support.",
     url: "https://xbull.app",
@@ -44,6 +49,7 @@ export const WALLETS: Wallet[] = [
   },
   {
     id: "albedo",
+    icon: "/wallets/albedo.png",
     name: "Albedo",
     blurb: "Signs in a popup. Nothing to install.",
     url: "https://albedo.link",
@@ -51,6 +57,7 @@ export const WALLETS: Wallet[] = [
   },
   {
     id: "rabet",
+    icon: "/wallets/rabet.png",
     name: "Rabet",
     blurb: "Lightweight extension wallet.",
     url: "https://rabet.io",
@@ -58,6 +65,7 @@ export const WALLETS: Wallet[] = [
   },
   {
     id: "hana",
+    icon: "/wallets/hana.png",
     name: "Hana",
     blurb: "Multi-chain wallet with Stellar support.",
     url: "https://hanawallet.io",

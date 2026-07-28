@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowLeft, ArrowUpRight, Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -70,7 +71,7 @@ export function ConnectPanel() {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: DURATION.base, ease: ENTER }}
-              className="mt-6 border border-ember/30 bg-ember/[0.06] px-5 py-4"
+              className="mt-6 border border-ember/30 bg-ember/6 px-5 py-4"
             >
               <p className="text-sm leading-relaxed text-ink-dim">
                 <span className="text-ember">Not wired up yet.</span> Wallet connection lands with
@@ -123,11 +124,19 @@ export function ConnectPanel() {
  */
 function Aside() {
   return (
-    <aside className="scanlines relative hidden overflow-hidden lg:flex lg:items-center">
+    <aside
+      className="scanlines relative hidden overflow-hidden lg:flex lg:items-center"
+      style={{ borderRadius: 0 }}
+    >
+      {/* Pinned past all four edges rather than centred as a square. The `blackhole` variant draws
+          a sphere, so a square canvas smaller than the column left the sphere's own circular
+          boundary in view, which reads as a rounded corner rather than as a field. Overscanning
+          20% puts that boundary outside the viewport entirely. */}
       <DitherField
         variant="blackhole"
-        className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-[130vh] -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none absolute inset-[-20%]"
         speed={0.55}
+        scale={1.2}
       />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-void/35" />
       <div
@@ -170,7 +179,7 @@ function WalletRow({
       disabled={status === "connecting"}
       className="group flex w-full items-center gap-4 bg-void px-5 py-4 text-left outline-none transition-colors hover:bg-raised focus-visible:bg-raised disabled:cursor-wait"
     >
-      <WalletGlyph id={wallet.id} />
+      <WalletMark wallet={wallet} />
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
@@ -202,24 +211,24 @@ function WalletRow({
 }
 
 /**
- * A dithered monogram per wallet.
+ * The wallet's own logo.
  *
- * Real brand logos would need six licensed SVGs and would clash with a halftone site anyway. The
- * initial in the site's own lattice reads as deliberate rather than as missing assets.
+ * Self-hosted copies of the icons Stellar Wallets Kit ships, so there is no third-party request on
+ * a page whose entire job is asking someone to trust it. Deliberately *not* dithered: this is the
+ * one place on the site where a mark has to be recognised instantly, and a halftone version of a
+ * logo someone is scanning for is a worse experience than a consistent one.
  */
-function WalletGlyph({ id }: { id: string }) {
+function WalletMark({ wallet }: { wallet: Wallet }) {
   return (
-    <span
-      aria-hidden
-      className="flex size-11 shrink-0 items-center justify-center border border-edge font-mono text-base text-signal transition-colors group-hover:border-signal-dim"
-      style={{
-        WebkitMaskImage: "radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0)",
-        maskImage: "radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0)",
-        WebkitMaskSize: "2.5px 2.5px",
-        maskSize: "2.5px 2.5px",
-      }}
-    >
-      {id.charAt(0).toUpperCase()}
+    <span className="flex size-11 shrink-0 items-center justify-center border border-edge bg-void transition-colors group-hover:border-signal-dim">
+      <Image
+        src={wallet.icon}
+        alt=""
+        width={28}
+        height={28}
+        className="size-7 object-contain"
+        unoptimized
+      />
     </span>
   );
 }
