@@ -44,6 +44,10 @@
   /* Halftone cell. Every dot grid on the site is a multiple of this. */
   --dither-cell: 3px;
 
+  /* Page gutter width. Wider than Tailwind's 6xl so the big display type has
+     room to breathe and the three-up grids stop feeling cramped. */
+  --container-app: 84rem;
+
   /* Display scale — deliberately large. This design lives or dies on the
      contrast between huge quiet type and fine dither texture. */
   --text-display: clamp(3rem, 8.5vw, 7.5rem);

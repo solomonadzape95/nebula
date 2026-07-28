@@ -57,6 +57,11 @@ function Hero() {
         className="pointer-events-none absolute top-1/2 left-1/2 aspect-square w-[165vmax] -translate-x-1/2 -translate-y-1/2"
       />
 
+      {/* Flat wash over the whole field. The vignette below shapes contrast in the centre; this
+          just takes the overall brightness down a step so the shader sits behind the type rather
+          than competing with it. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-void/25" />
+
       {/* Vignette pulls the centre dark so type stays legible over the brightest part. */}
       <div
         aria-hidden
@@ -103,7 +108,7 @@ function Hero() {
 function StatBand() {
   return (
     <section className="relative z-10 border-y border-edge bg-void">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-10 px-5 py-12 sm:px-8 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-app grid-cols-2 gap-x-8 gap-y-10 px-5 py-12 sm:px-8 lg:grid-cols-4">
         <Stat label="Total value locked" value={PLACEHOLDER.tvl} unit="XLM" />
         <Stat
           label="Share price"
@@ -289,7 +294,7 @@ function Section({
 }) {
   return (
     <section id={id} className="relative overflow-hidden border-b border-edge">
-      <div className="relative mx-auto max-w-6xl px-5 py-24 sm:px-8 sm:py-28 lg:py-36">
+      <div className="relative mx-auto max-w-app px-5 py-24 sm:px-8 sm:py-28 lg:py-36">
         {label && (
           <div className="mb-14 flex items-center gap-4">
             <span className="label whitespace-nowrap">{label}</span>
@@ -307,24 +312,29 @@ function Section({
 function Footer() {
   return (
     <footer className="relative flex min-h-[92svh] flex-col overflow-hidden">
-      {/* A real photograph of a black hole, run through the same dither as the rest of the page. */}
+      {/* The photograph, run through the same dither as the rest of the page. `colorBack` is the
+          page's own void so the dark end of the image resolves to exactly the page ground, and
+          the picture dissolves into the background instead of ending at an edge. */}
       <ImageField
-        source="blackhole"
-        className="pointer-events-none absolute inset-0 opacity-70"
+        source="footer"
+        className="pointer-events-none absolute inset-0"
         pxSize={2.6}
-        colorSteps={3}
+        colorSteps={4}
+        colorBack="#07080a"
       />
+      {/* Top and bottom fades carry that dissolve the rest of the way, so there is no seam where
+          the image starts or where the wordmark band begins. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, var(--color-void) 0%, rgba(7,8,10,0.35) 35%, rgba(7,8,10,0.82) 78%, var(--color-void) 100%)",
+            "linear-gradient(to bottom, var(--color-void) 0%, rgba(7,8,10,0.25) 28%, rgba(7,8,10,0.6) 62%, rgba(7,8,10,0.92) 86%, var(--color-void) 100%)",
         }}
       />
 
       <div className="relative flex flex-1 items-center">
-        <div className="mx-auto w-full max-w-6xl px-5 py-28 sm:px-8">
+        <div className="mx-auto w-full max-w-app px-5 py-28 sm:px-8">
           <h2 className="text-headline max-w-2xl text-balance text-ink">Put your XLM to work.</h2>
           <p className="mt-7 max-w-lg text-lg leading-relaxed text-ink-dim">
             A testnet wallet, two minutes, and nothing at risk. See what it does before you decide
@@ -348,28 +358,20 @@ function Footer() {
 
       {/* Wordmark band. The drift field is barely there on purpose: it should register as a
           texture behind the name, not as another animation competing with the hero. */}
-      <div className="relative overflow-hidden border-t border-edge/60">
+      <div className="relative overflow-hidden">
         <DitherField
           variant="drift"
           className="pointer-events-none absolute inset-0 opacity-[0.09]"
           speed={0.35}
         />
-        <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+        <div className="relative mx-auto max-w-app px-5 sm:px-8">
           <p
             aria-hidden
-            className="pt-10 leading-[0.78] font-medium tracking-[-0.05em] text-ink/[0.13] select-none"
+            className="pt-10 pb-6 leading-[0.78] font-medium tracking-[-0.05em] text-signal select-none"
             style={{ fontSize: "var(--text-wordmark)" }}
           >
             nebula
           </p>
-          <div className="flex flex-col gap-3 border-t border-edge/60 py-7 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-mono text-xs tracking-[0.2em] text-ink-faint uppercase">
-              Liquid yield for XLM
-            </span>
-            <span className="font-mono text-[0.6875rem] text-ink-faint">
-              Testnet. Tokens have no real value. Imagery: NASA/JPL-Caltech.
-            </span>
-          </div>
         </div>
       </div>
     </footer>

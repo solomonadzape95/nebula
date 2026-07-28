@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { ImageField } from "@/components/shader/image-field";
 import { DitherProgress } from "@/components/ui/dither-loader";
 
-const DEPOSIT = 100;
+const DEFAULT_DEPOSIT = 100;
+const MAX_DEPOSIT = 1_000_000;
 const START_PRICE = 1;
 /** Fast enough to see in a few seconds, slow enough not to look like a slot machine. */
 const RATE_PER_TICK = 0.000_06;
@@ -20,13 +21,17 @@ const CYCLE_TICKS = 340;
  * sit perfectly still while the two beside it climb does the job in about four seconds. The nXLM
  * row is deliberately the boring one, because that is the point being made.
  *
- * Precision is per row rather than uniform: a price needs six decimals to visibly move, a balance
- * needs four, and money needs two. Printing everything to seven places was noise pretending to be
- * rigour.
+ * The deposit is editable so the visitor can type their own number in. Seeing the yield on an
+ * amount you actually hold is a different thing from seeing it on a stranger's round hundred.
+ *
+ * Precision is per row rather than uniform: a price needs six decimals to visibly move, money
+ * needs four, and the two amounts the visitor chose are whole numbers because that is how they
+ * think about them.
  */
 export function NxlmDemo() {
   const [ticks, setTicks] = useState(0);
   const [running, setRunning] = useState(true);
+  const [deposit, setDeposit] = useState(DEFAULT_DEPOSIT);
 
   useEffect(() => {
     if (!running) return;
@@ -37,8 +42,8 @@ export function NxlmDemo() {
   }, [running]);
 
   const price = START_PRICE + ticks * RATE_PER_TICK;
-  const worth = DEPOSIT * price;
-  const earned = worth - DEPOSIT;
+  const worth = deposit * price;
+  const earned = worth - deposit;
   const elapsed = (ticks * TICK_MS) / 1000;
 
   return (
@@ -71,31 +76,70 @@ export function NxlmDemo() {
           </button>
         </div>
 
-        {/* What went in. Fixed, and visually quieter than everything below it. */}
         <div className="mt-9 flex items-baseline justify-between gap-4 border-b border-edge pb-6">
-          <span className="text-base text-ink-dim">You deposited</span>
-          <span className="tabular font-mono text-xl text-ink-dim sm:text-2xl">
-            {DEPOSIT.toFixed(2)} <span className="text-sm text-ink-faint">XLM</span>
+          <label htmlFor="demo-deposit" className="text-base text-ink-dim">
+            You deposited
+          </label>
+          <span className="flex items-baseline gap-2">
+            <DepositInput value={deposit} onChange={setDeposit} />
+            <span className="font-mono text-sm text-ink-faint">XLM</span>
           </span>
         </div>
 
         <div className="mt-8 space-y-7">
-          <DemoRow label="Your nXLM" value={DEPOSIT.toFixed(4)} note="never changes" frozen />
+          <DemoRow label="Your nXLM" value={formatWhole(deposit)} note="never changes" frozen />
           <DemoRow label="Price per nXLM" value={price.toFixed(6)} note="XLM" />
-          <DemoRow label="What it's worth" value={worth.toFixed(4)} note="XLM" signal large />
+          <DemoRow label="What it's worth" value={formatMoney(worth)} note="XLM" signal large />
         </div>
 
         <div className="mt-10 border-t border-edge pt-7">
           <div className="flex items-baseline justify-between gap-4">
             <span className="label">Earned in {elapsed.toFixed(1)}s</span>
             <span className="tabular font-mono text-xl text-signal sm:text-2xl">
-              +{earned.toFixed(4)} XLM
+              +{formatMoney(earned)} XLM
             </span>
           </div>
           <DitherProgress value={ticks / CYCLE_TICKS} className="mt-5" />
         </div>
       </div>
     </div>
+  );
+}
+
+const formatWhole = (n: number) => n.toLocaleString("en-US");
+const formatMoney = (n: number) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+
+/**
+ * Sized to its own content so the number stays visually anchored to the right edge like every
+ * other figure in the panel, instead of sitting in a fixed box that looks like a form.
+ */
+function DepositInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+
+  const commit = (raw: string) => {
+    const digits = raw.replace(/[^\d]/g, "").slice(0, 7);
+    const next = Math.min(Number(digits) || 0, MAX_DEPOSIT);
+    setDraft(digits);
+    if (next > 0) onChange(next);
+  };
+
+  return (
+    <input
+      id="demo-deposit"
+      type="text"
+      inputMode="numeric"
+      value={draft}
+      onChange={(e) => commit(e.target.value)}
+      // An empty or zero field is a state you can type through, not one to leave the panel in.
+      onBlur={() => {
+        const next = Number(draft) || DEFAULT_DEPOSIT;
+        setDraft(String(next));
+        onChange(next);
+      }}
+      aria-label="Deposit amount in XLM"
+      className="tabular w-[6ch] border-b border-edge bg-transparent text-right font-mono text-xl text-ink-dim transition-colors outline-none hover:border-ink-faint focus:border-signal focus:text-ink sm:text-2xl"
+    />
   );
 }
 

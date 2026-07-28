@@ -18,9 +18,13 @@ const ImageDithering = dynamic(
   { ssr: false },
 );
 
-export type ImageFieldSource = "blackhole" | "nebula";
+export type ImageFieldSource = "footer" | "blackhole" | "nebula";
 
 const SOURCES: Record<ImageFieldSource, { src: string; alt: string }> = {
+  footer: {
+    src: "/img/footer.jpg",
+    alt: "A deep field of stars",
+  },
   blackhole: {
     src: "/img/blackhole.jpg",
     alt: "A black hole with a relativistic jet. NASA/JPL-Caltech.",

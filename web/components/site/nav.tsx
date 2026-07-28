@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Menu } from "@/components/site/menu";
+
 const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#nxlm", label: "nXLM" },
@@ -45,10 +47,10 @@ export function Nav() {
         hidden ? "-translate-y-full" : "translate-y-0"
       } ${scrolled ? "border-b border-edge/70 bg-void/80 backdrop-blur-xl" : "border-b border-transparent"}`}
     >
-      <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
+      <nav className="mx-auto flex h-18 max-w-app items-center justify-between px-5 sm:px-8">
+        <Link href="/" className="flex items-center gap-3">
           <Mark />
-          <span className="font-mono text-sm tracking-[0.22em] uppercase">Nebula</span>
+          <span className="font-mono text-lg tracking-[0.2em] uppercase">Nebula</span>
         </Link>
 
         <div className="hidden items-center gap-9 md:flex">
@@ -56,16 +58,19 @@ export function Nav() {
             <a
               key={link.href}
               href={link.href}
-              className="font-mono text-xs tracking-wider text-ink-dim uppercase transition-colors hover:text-ink"
+              className="font-mono text-sm tracking-wider text-ink-dim uppercase transition-colors hover:text-ink"
             >
               {link.label}
             </a>
           ))}
         </div>
 
-        <Link href="/app" className="btn btn-primary !px-5 !py-2.5 !text-xs">
-          Launch app
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/app" className="btn btn-primary !px-5 !py-2.5 !text-sm">
+            Launch app
+          </Link>
+          <Menu />
+        </div>
       </nav>
     </header>
   );
@@ -74,7 +79,7 @@ export function Nav() {
 /** A halftone ring: the black hole, reduced to a favicon. */
 function Mark() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden className="text-signal">
+    <svg width="22" height="22" viewBox="0 0 18 18" aria-hidden className="text-signal">
       <circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.35" />
       <circle cx="9" cy="9" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="9" cy="9" r="1.5" fill="currentColor" />
