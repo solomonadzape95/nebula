@@ -90,10 +90,10 @@ export function Menu({
         aria-expanded={open}
         animate={{ opacity: open ? 0 : 1, scale: open ? 0.85 : 1 }}
         transition={{ duration: DURATION.fast, ease: ENTER }}
-        className="flex size-12 items-center justify-center border border-edge bg-void/60 text-ink-dim backdrop-blur-sm transition-colors hover:border-ink-faint hover:text-ink"
+        className="flex size-14 items-center justify-center border border-edge bg-void/60 text-ink-dim backdrop-blur-sm transition-colors hover:border-ink-faint hover:text-ink"
         style={{ pointerEvents: open ? "none" : "auto" }}
       >
-        <MenuIcon size={22} strokeWidth={2} />
+        <MenuIcon size={26} strokeWidth={2} />
       </motion.button>
 
       {typeof document !== "undefined" &&
@@ -120,7 +120,7 @@ export function Menu({
                    except for the panel itself. */
                 <div
                   key="panel-row"
-                  className="pointer-events-none fixed inset-x-0 top-3 z-70"
+                  className="pointer-events-none fixed inset-x-0 top-2 z-70"
                 >
                   <div className="mx-auto flex max-w-app justify-end px-5 sm:px-8">
                     <motion.div

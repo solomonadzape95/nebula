@@ -75,7 +75,7 @@ export function Nav() {
         The row is click-through; only the button and the panel inside it take pointer events.
       */}
       <div
-        className={`pointer-events-none fixed inset-x-0 top-3 z-50 transition-transform duration-300 ease-out ${
+        className={`pointer-events-none fixed inset-x-0 top-2 z-50 transition-transform duration-300 ease-out ${
           hidden && !menuOpen ? "-translate-y-[5.5rem]" : "translate-y-0"
         }`}
       >

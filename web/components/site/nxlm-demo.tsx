@@ -8,11 +8,11 @@ import { DitherProgress } from "@/components/ui/dither-loader";
 const DEFAULT_DEPOSIT = 100;
 const MAX_DEPOSIT = 1_000_000;
 const START_PRICE = 1;
-/** Paced for the digit roll: fast enough to watch, slow enough that each change lands. */
-const RATE_PER_TICK = 0.000_28;
-const TICK_MS = 420;
+/** Fast enough to see in a few seconds, slow enough not to look like a slot machine. */
+const RATE_PER_TICK = 0.000_06;
+const TICK_MS = 90;
 /** One full cycle, then it starts over so a returning eye always catches it moving. */
-const CYCLE_TICKS = 72;
+const CYCLE_TICKS = 340;
 
 /**
  * The concept, demonstrated rather than described.
