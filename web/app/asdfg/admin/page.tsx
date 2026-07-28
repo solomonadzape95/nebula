@@ -5,9 +5,16 @@ import { Icon } from "@/components/ui/icon";
 import Link from "next/link";
 
 import { Sparkline } from "@/components/dither-kit/sparkline";
+import { FunnelPanel } from "@/components/app/funnel-panel";
 import { DataNotice } from "@/components/site/data-notice";
 import { formatStroops, fromStroops } from "@/lib/format";
 import { getDepositors, getIndexerStats, getPriceSeries, getSyncState } from "@/lib/indexer";
+import {
+  analyticsConfigured,
+  getFailurePhases,
+  getFunnel,
+  getWallets,
+} from "@/lib/posthog-query";
 import { getReviews } from "@/lib/profile";
 import { getVaultState } from "@/lib/stellar";
 
@@ -25,14 +32,18 @@ const FEEDBACK_TARGET = 8;
 export const revalidate = 30;
 
 export default async function AdminPage() {
-  const [depositors, stats, series, vault, sync, reviews] = await Promise.all([
-    getDepositors(),
-    getIndexerStats(),
-    getPriceSeries(),
-    getVaultState(),
-    getSyncState(),
-    getReviews(),
-  ]);
+  const [depositors, stats, series, vault, sync, reviews, funnel, phases, wallets] =
+    await Promise.all([
+      getDepositors(),
+      getIndexerStats(),
+      getPriceSeries(),
+      getVaultState(),
+      getSyncState(),
+      getReviews(),
+      getFunnel(),
+      getFailurePhases(),
+      getWallets(),
+    ]);
 
   const users = depositors.length;
   const feedback = reviews.length;
@@ -77,6 +88,21 @@ export default async function AdminPage() {
             note="Reviews left through the in-app button, with what changed as a result."
           />
         </div>
+      </section>
+
+      <section className="mt-16">
+        <div className="mb-8 flex items-center gap-4">
+          <span className="label whitespace-nowrap">Drop-off</span>
+          <span className="h-px flex-1 bg-edge" />
+        </div>
+
+        <FunnelPanel
+          funnel={funnel}
+          phases={phases}
+          wallets={wallets}
+          onChainDepositors={users}
+          configured={analyticsConfigured()}
+        />
       </section>
 
       <section className="mt-16">
