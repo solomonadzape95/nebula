@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { useWallet } from "@/components/wallet/wallet-provider";
 import { DURATION, ENTER, EXIT, MORPH_SPRING } from "@/lib/easing";
-import { submitReview } from "@/lib/profile";
+import { submitReview } from "@/lib/profile-actions";
 
 interface ReviewValue {
   open: () => void;
@@ -62,6 +62,14 @@ export function ReviewProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * The floating trigger.
+ *
+ * Behaves exactly like a row in the landing menu: at rest the icon is dithered and desaturated,
+ * and hover resolves it to solid signal colour and lifts it. No shape morph and no glow until the
+ * pointer is on it. A button that glows while nobody is looking at it competes with the content
+ * it is sitting on top of.
+ */
 function FloatingTrigger({ visible, onClick }: { visible: boolean; onClick: () => void }) {
   return (
     <AnimatePresence>
@@ -70,26 +78,41 @@ function FloatingTrigger({ visible, onClick }: { visible: boolean; onClick: () =
           type="button"
           onClick={onClick}
           aria-label="Leave a review"
-          initial={{ opacity: 0, scale: 0.6, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.6, y: 16 }}
-          transition={MORPH_SPRING}
-          /* Morphs from a square to a rounded pill on hover, which is the only rounded corner on
-             the site and reads as an invitation rather than another panel. */
-          whileHover={{ borderRadius: 28, scale: 1.06 }}
-          style={{ borderRadius: 2 }}
-          className="group fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center border border-signal-dim/50 bg-void/90 text-signal shadow-[0_0_32px_-10px_var(--color-signal)] backdrop-blur-sm sm:right-8 sm:bottom-8"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 14 }}
+          transition={{ duration: DURATION.base, ease: ENTER }}
+          whileHover="hover"
+          whileFocus="hover"
+          whileTap={{ scale: 0.96 }}
+          className="fixed right-5 bottom-5 z-50 flex size-14 items-center justify-center border border-edge bg-void/85 backdrop-blur-sm transition-colors outline-none hover:border-signal-dim focus-visible:border-signal-dim sm:right-8 sm:bottom-8"
         >
-          <span
-            style={{
-              WebkitMaskImage: "radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0)",
-              maskImage: "radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0)",
-              WebkitMaskSize: "2.5px 2.5px",
-              maskSize: "2.5px 2.5px",
-            }}
-            className="transition-transform group-hover:scale-110"
-          >
-            <MessageSquare size={22} strokeWidth={2.5} />
+          <span className="relative flex size-6 items-center justify-center">
+            {/* Rest: dithered and dim. */}
+            <motion.span
+              variants={{ hover: { opacity: 0 } }}
+              initial={{ opacity: 1 }}
+              transition={{ duration: DURATION.fast }}
+              className="absolute text-ink-faint"
+              style={{
+                WebkitMaskImage: "radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0)",
+                maskImage: "radial-gradient(circle at 1px 1px, #000 0.9px, transparent 0)",
+                WebkitMaskSize: "2.5px 2.5px",
+                maskSize: "2.5px 2.5px",
+              }}
+            >
+              <MessageSquare size={24} strokeWidth={2.5} />
+            </motion.span>
+
+            {/* Hover: solid, signal, lifted. */}
+            <motion.span
+              variants={{ hover: { opacity: 1, scale: 1, y: 0 } }}
+              initial={{ opacity: 0, scale: 0.82, y: 4 }}
+              transition={MORPH_SPRING}
+              className="absolute text-signal"
+            >
+              <MessageSquare size={24} strokeWidth={2} />
+            </motion.span>
           </span>
         </motion.button>
       )}

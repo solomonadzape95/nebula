@@ -10,6 +10,7 @@ import { DitherField } from "@/components/shader/dither-field";
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { Logo } from "@/components/site/logo";
 import { useWallet } from "@/components/wallet/wallet-provider";
+import { ADMIN_ROOT, isAdminAddress } from "@/lib/admin";
 import { shortAddress } from "@/lib/contracts";
 import { DURATION, ENTER } from "@/lib/easing";
 import { WALLETS, type Wallet } from "@/lib/wallets";
@@ -19,9 +20,11 @@ export function ConnectPanel() {
   const { address, status, error, connect, disconnect, walletId } = useWallet();
 
   const onSelect = async (wallet: Wallet) => {
-    await connect(wallet.id);
+    const walletAddress = await connect(wallet.id);
     // Landing back on the app is the point of connecting; staying here would be a dead end.
-    router.push("/app");
+    // Operators go to the admin surface instead, where a password still stands between them and
+    // anything sensitive.
+    router.push(isAdminAddress(walletAddress ?? null) ? ADMIN_ROOT : "/app");
   };
 
   return (
@@ -66,6 +69,11 @@ export function ConnectPanel() {
                 <Link href="/app" className="btn btn-primary w-full sm:w-auto">
                   Go to the vault
                 </Link>
+                {isAdminAddress(address) && (
+                  <Link href={ADMIN_ROOT} className="btn btn-ghost w-full sm:w-auto">
+                    Admin
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={disconnect}

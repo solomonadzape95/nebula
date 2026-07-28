@@ -62,7 +62,7 @@ export default async function AdminPage() {
             label="Real depositors"
             value={users}
             target={USER_TARGET}
-            href="/admin/users"
+            href="/asdfg/admin/users"
             note="Distinct wallets that have deposited. Cannot be backfilled: start recruiting early."
           />
           <Gate
@@ -70,7 +70,7 @@ export default async function AdminPage() {
             label="Feedback responses"
             value={feedback}
             target={FEEDBACK_TARGET}
-            href="/admin/feedback"
+            href="/asdfg/admin/feedback"
             note="Reviews left through the in-app button, with what changed as a result."
           />
         </div>
@@ -133,19 +133,19 @@ export default async function AdminPage() {
             icon={Users}
             title="Depositors"
             body="Every address with transaction proof."
-            href="/admin/users"
+            href="/asdfg/admin/users"
           />
           <Shortcut
             icon={MessageSquare}
             title="Feedback"
             body="What testers said and what changed."
-            href="/admin/feedback"
+            href="/asdfg/admin/feedback"
           />
           <Shortcut
             icon={ShieldCheck}
             title="Operations"
             body="Keeper jobs, strategies, parameters."
-            href="/admin/ops"
+            href="/asdfg/admin/ops"
           />
         </div>
       </section>

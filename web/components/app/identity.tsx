@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { useWallet } from "@/components/wallet/wallet-provider";
-import { getProfile, saveProfile, type Profile, type SaveResult } from "@/lib/profile";
+import { fetchProfile, saveProfile, type SaveResult } from "@/lib/profile-actions";
+import type { Profile } from "@/lib/profile";
 
 interface IdentityValue {
   profile: Profile | null;
@@ -35,7 +36,7 @@ export function IdentityProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!address) return;
     let cancelled = false;
-    void getProfile(address).then((profile) => {
+    void fetchProfile(address).then((profile) => {
       if (!cancelled) setState({ address, profile });
     });
     return () => {

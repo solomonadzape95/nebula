@@ -14,7 +14,7 @@ interface WalletContextValue {
   walletId: string | null;
   status: WalletStatus;
   error: string | null;
-  connect: (walletId: string) => Promise<void>;
+  connect: (walletId: string) => Promise<string | null>;
   disconnect: () => void;
 }
 
@@ -52,7 +52,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<WalletStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(async (id: string) => {
+  const connect = useCallback(async (id: string): Promise<string | null> => {
     setStatus("connecting");
     setError(null);
     try {
@@ -69,9 +69,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setWalletId(id);
       setStatus("connected");
       window.localStorage.setItem(STORAGE_KEY, id);
+      // Returned as well as stored: a caller routing on the result cannot wait for a state update
+      // that lands after its own render.
+      return next;
     } catch (cause) {
       setError(describe(cause, id.charAt(0).toUpperCase() + id.slice(1)));
       setStatus("error");
+      return null;
     }
   }, []);
 

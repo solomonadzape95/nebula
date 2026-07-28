@@ -28,10 +28,10 @@ const APP_NAV = [
 ];
 
 const ADMIN_NAV = [
-  { href: "/admin", label: "Overview", icon: Gauge },
-  { href: "/admin/users", label: "Depositors", icon: Users },
-  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
-  { href: "/admin/ops", label: "Operations", icon: ShieldCheck },
+  { href: "/asdfg/admin", label: "Overview", icon: Gauge },
+  { href: "/asdfg/admin/users", label: "Depositors", icon: Users },
+  { href: "/asdfg/admin/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/asdfg/admin/ops", label: "Operations", icon: ShieldCheck },
 ];
 
 /**
