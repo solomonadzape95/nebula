@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { useWallet } from "@/components/wallet/wallet-provider";
+import { track } from "@/lib/analytics";
 import { fetchProfile, saveProfile, type SaveResult } from "@/lib/profile-actions";
 import { ensureWalletSession } from "@/lib/session-client";
 import type { Profile } from "@/lib/profile";
@@ -61,7 +62,12 @@ export function IdentityProvider({ children }: { children: React.ReactNode }) {
       if (!session.ok) return { ok: false, error: session.error ?? "Could not verify the wallet." };
 
       const result = await saveProfile(username, hue);
-      if (result.ok) setState({ address, profile: result.profile });
+      if (result.ok) {
+        setState({ address, profile: result.profile });
+        // No username sent: the fact someone got through the signature prompt is the signal, and
+        // the name itself is already in the database if anyone needs it.
+        track("username_set");
+      }
       return result;
     },
     [address],

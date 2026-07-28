@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+import { resetIdentity, track } from "@/lib/analytics";
 import { NETWORK } from "@/lib/contracts";
 import { endSession } from "@/lib/session-actions";
 import { loadKit } from "@/lib/wallet-kit";
@@ -56,6 +57,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const connect = useCallback(async (id: string): Promise<string | null> => {
     setStatus("connecting");
     setError(null);
+    // Recorded before the attempt, so a wallet that never returns still leaves a trace. The gap
+    // between started and connected is people whose extension refused or who closed the prompt,
+    // which is invisible if only successes are counted.
+    track("wallet_connect_started", { wallet: id });
     try {
       const kit = await loadKit();
       kit.setWallet(id);
@@ -70,12 +75,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setWalletId(id);
       setStatus("connected");
       window.localStorage.setItem(STORAGE_KEY, id);
+      track("wallet_connected", { wallet: id });
       // Returned as well as stored: a caller routing on the result cannot wait for a state update
       // that lands after its own render.
       return next;
     } catch (cause) {
       setError(describe(cause, id.charAt(0).toUpperCase() + id.slice(1)));
       setStatus("error");
+      // The wallet's own message, not ours: the phrasing users see is already in `describe`, and
+      // the raw text is what makes a cluster of failures diagnosable.
+      track("wallet_connect_failed", {
+        wallet: id,
+        reason: String((cause as { message?: string })?.message ?? cause).slice(0, 120),
+      });
       return null;
     }
   }, []);
@@ -91,6 +103,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     // session that survived a disconnect would leave the next person at this machine still able to
     // write as the wallet that walked away.
     void endSession().catch(() => {});
+
+    // Start a fresh anonymous analytics id. Nothing here is tied to an address, but a shared
+    // browser would otherwise fold two people's sessions into one and understate how many tried it.
+    resetIdentity();
 
     void loadKit()
       .then((kit) => kit.disconnect())

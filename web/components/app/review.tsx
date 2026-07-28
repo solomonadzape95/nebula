@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { useWallet } from "@/components/wallet/wallet-provider";
 import { DURATION, ENTER, EXIT, MORPH_SPRING } from "@/lib/easing";
+import { track } from "@/lib/analytics";
 import { submitReview } from "@/lib/profile-actions";
 import { ensureWalletSession } from "@/lib/session-client";
 
@@ -159,6 +160,9 @@ function ReviewModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     const result = await submitReview({ rating, body });
     setBusy(false);
     if (result.ok) {
+      // The rating, not the text. Feedback belongs in the admin panel where it can be read and
+      // acted on; PostHog only needs to know one arrived and roughly how it felt.
+      track("review_submitted", { rating });
       setDone(true);
       window.setTimeout(() => {
         onClose();

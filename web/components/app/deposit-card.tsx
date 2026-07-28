@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { useWallet } from "@/components/wallet/wallet-provider";
+import { amountBucket, track } from "@/lib/analytics";
 import { getNativeBalance, getShareBalance } from "@/lib/balances";
 import { explorerTx } from "@/lib/contracts";
 import { DURATION, ENTER } from "@/lib/easing";
@@ -106,17 +107,33 @@ export function DepositCard({
     setError(null);
     setTxHash(null);
 
+    // The funnel worth having. `submitted` fires before the wallet prompt and `confirmed` only
+    // once the transaction is on the ledger, so the gap between them is people who abandoned the
+    // prompt or whose transaction failed — the group that never complains and never comes back,
+    // and the reason to measure any of this.
+    const size = amountBucket(parsed);
+    track(mode === "deposit" ? "deposit_submitted" : "withdraw_submitted", { size });
+
     try {
       const run = mode === "deposit" ? deposit : redeem;
       const hash = await run({ address, amount: parsed, onPhase: setPhase });
       setTxHash(hash);
       setAmount("");
       setPhase("done");
+      track(mode === "deposit" ? "deposit_confirmed" : "withdraw_confirmed", { size });
       // Vault figures on this page are server-rendered, so they only move on a refresh.
       router.refresh();
     } catch (cause) {
       setPhase("idle");
       setError(cause instanceof TxError ? cause.message : "Something went wrong.");
+      // `phase` is where it got to before failing: simulating, signing, submitting or confirming.
+      // That one field separates "we rejected it" from "they cancelled" from "the network did",
+      // which are three different problems with three different fixes.
+      track(mode === "deposit" ? "deposit_failed" : "withdraw_failed", {
+        size,
+        phase,
+        reason: cause instanceof TxError ? cause.message.slice(0, 120) : "unknown",
+      });
     }
   };
 

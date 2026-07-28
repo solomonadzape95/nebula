@@ -25,6 +25,8 @@ const SECTIONS = [
     h: "Analytics",
     p: [
       "We measure page views and how far people get through the deposit flow, so we can tell where the interface loses them. That data is aggregated, and it is not connected to your wallet address.",
+      "Deposit and withdrawal amounts are recorded as size bands rather than exact figures, because an exact amount and a timestamp would point at one specific transaction on a public ledger.",
+      "This uses PostHog, served from our own domain rather than theirs. It stores an anonymous identifier in your browser to tell one visit from the next. Clearing site data clears it, and disconnecting a wallet issues a new one.",
       "Errors are recorded so that broken states get fixed. Error reports include what the interface was doing, not who was doing it.",
     ],
   },
