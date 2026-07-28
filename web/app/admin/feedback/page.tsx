@@ -1,9 +1,10 @@
-import { Check, MessageSquare, X } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
-import { MockNotice } from "@/components/site/mock-notice";
+import { DitherAvatar } from "@/components/dither-kit/avatar";
+
 import { explorerAccount, shortAddress } from "@/lib/contracts";
 import { shortDate } from "@/lib/format";
-import { FEEDBACK, type FeedbackRow } from "@/lib/mock";
+import { getReviews, type Review } from "@/lib/profile";
 
 const TARGET = 8;
 
@@ -14,12 +15,16 @@ const TARGET = 8;
  * nothing with it is theatre; a reviewer can tell the difference immediately, and so can the
  * person who bothered to write it.
  */
-export default function AdminFeedbackPage() {
-  const total = FEEDBACK.length;
+export const revalidate = 30;
+
+export default async function AdminFeedbackPage() {
+  const reviews = await getReviews();
+
+  const total = reviews.length;
   const pct = Math.min(100, (total / TARGET) * 100);
-  const succeeded = FEEDBACK.filter((f) => f.succeeded).length;
-  const avgClarity = total ? FEEDBACK.reduce((s, f) => s + f.clarity, 0) / total : 0;
-  const positive = FEEDBACK.filter((f) => f.wouldUseOnMainnet === "yes").length;
+  const deposited = reviews.filter((r) => r.deposited).length;
+  const avgRating = total ? reviews.reduce((sum, r) => sum + r.rating, 0) / total : 0;
+  const positive = reviews.filter((r) => r.rating >= 4).length;
 
   return (
     <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
@@ -28,10 +33,6 @@ export default function AdminFeedbackPage() {
         What testers said, and what changed as a result. Responses come from the in-app widget and
         the linked form.
       </p>
-
-      <div className="mt-8">
-        <MockNotice what="These responses" />
-      </div>
 
       <div className="panel mt-10 p-7 sm:p-9">
         <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -57,17 +58,17 @@ export default function AdminFeedbackPage() {
         </div>
 
         <div className="mt-8 grid grid-cols-2 gap-6 border-t border-edge pt-7 sm:grid-cols-4">
-          <Metric label="Completed a deposit" value={`${succeeded} of ${total}`} />
-          <Metric label="Avg. clarity" value={total ? `${avgClarity.toFixed(1)} / 5` : "n/a"} />
-          <Metric label="Would use on mainnet" value={`${positive} of ${total}`} />
+          <Metric label="Completed a deposit" value={`${deposited} of ${total}`} />
+          <Metric label="Avg. rating" value={total ? `${avgRating.toFixed(1)} / 5` : "n/a"} />
+          <Metric label="Rated 4 or 5" value={`${positive} of ${total}`} />
           <Metric
             label="Acted on"
-            value={`${FEEDBACK.filter((f) => f.actioned).length} of ${total}`}
+            value={`${reviews.filter((r) => r.actioned).length} of ${total}`}
           />
         </div>
       </div>
 
-      {total === 0 ? <EmptyState /> : <Responses rows={FEEDBACK} />}
+      {total === 0 ? <EmptyState /> : <Responses rows={reviews} />}
     </div>
   );
 }
@@ -81,52 +82,50 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Responses({ rows }: { rows: FeedbackRow[] }) {
+function Responses({ rows }: { rows: Review[] }) {
   return (
     <div className="mt-10 space-y-px border border-edge bg-edge">
       {rows.map((row) => (
         <article key={row.id} className="bg-void p-7 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span className="flex items-center gap-3">
-              {row.succeeded ? (
-                <Check size={16} className="text-signal" strokeWidth={2.5} />
-              ) : (
-                <X size={16} className="text-ember" strokeWidth={2.5} />
-              )}
-              {row.address ? (
+              <DitherAvatar
+                name={row.username ? `${row.username}:${row.address.slice(-6)}` : row.address}
+                hue={row.hue}
+                size={32}
+                animate={false}
+              />
+              <span>
                 <a
                   href={explorerAccount(row.address)}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-mono text-sm text-ink-dim transition-colors hover:text-signal"
+                  className="block text-sm text-ink transition-colors hover:text-signal"
                 >
-                  {shortAddress(row.address, 6, 6)}
+                  {row.username ?? shortAddress(row.address, 6, 6)}
                 </a>
-              ) : (
-                <span className="font-mono text-sm text-ink-faint">Anonymous</span>
-              )}
+                {row.username && (
+                  <span className="block font-mono text-xs text-ink-faint">
+                    {shortAddress(row.address, 4, 4)}
+                  </span>
+                )}
+              </span>
             </span>
 
             <span className="flex flex-wrap items-center gap-3">
-              <Tag label={`Clarity ${row.clarity}/5`} />
-              <Tag
-                label={`Mainnet: ${row.wouldUseOnMainnet}`}
-                tone={row.wouldUseOnMainnet === "yes" ? "signal" : "default"}
-              />
-              <span className="font-mono text-xs text-ink-faint">{shortDate(row.at)}</span>
+              <Tag label={`${row.rating}/5`} tone={row.rating >= 4 ? "signal" : "default"} />
+              {row.deposited ? (
+                <Tag label="Deposited" tone="signal" />
+              ) : (
+                <Tag label="No deposit" />
+              )}
+              <span className="font-mono text-xs text-ink-faint">{shortDate(row.createdAt)}</span>
             </span>
           </div>
 
-          <dl className="mt-6 grid gap-6 md:grid-cols-2">
-            <div>
-              <dt className="label">What confused them</dt>
-              <dd className="mt-2 text-base leading-relaxed text-ink-dim">{row.confusedBy}</dd>
-            </div>
-            <div>
-              <dt className="label">What they would add</dt>
-              <dd className="mt-2 text-base leading-relaxed text-ink-dim">{row.wouldAdd}</dd>
-            </div>
-          </dl>
+          <p className="mt-6 text-base leading-relaxed whitespace-pre-line text-ink-dim">
+            {row.body}
+          </p>
 
           {row.actioned ? (
             <div className="mt-6 border-l-2 border-signal bg-signal/[0.05] py-3 pl-5">
@@ -164,7 +163,7 @@ function EmptyState() {
       <MessageSquare size={28} className="text-ink-faint" strokeWidth={2} />
       <h2 className="mt-6 text-xl font-medium tracking-tight text-ink">No responses yet</h2>
       <p className="mt-3 max-w-md text-base leading-relaxed text-ink-dim">
-        The feedback widget is live on every app screen. Ask testers directly after they complete a
+        The review button is live on every app screen. Ask testers right after they complete a
         deposit, which is when they actually have an opinion.
       </p>
     </div>

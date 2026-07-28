@@ -7,22 +7,24 @@ import {
   Layers,
   MessageSquare,
   ShieldCheck,
+  User,
   Users,
-  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AppNavMenu } from "@/components/app/app-nav-menu";
+import { IdentityProvider } from "@/components/app/identity";
+import { ProfileMenu } from "@/components/app/profile-menu";
+import { ReviewLink, ReviewProvider } from "@/components/app/review";
 import { Logo } from "@/components/site/logo";
-import { useWallet } from "@/components/wallet/wallet-provider";
-import { shortAddress } from "@/lib/contracts";
 
 
 const APP_NAV = [
   { href: "/app", label: "Position", icon: LayoutDashboard },
   { href: "/app/activity", label: "Activity", icon: Activity },
   { href: "/app/vault", label: "Vault", icon: Layers },
+  { href: "/app/profile", label: "Profile", icon: User },
 ];
 
 const ADMIN_NAV = [
@@ -50,6 +52,28 @@ export function AppShell({
   const items = admin ? ADMIN_NAV : APP_NAV;
 
   return (
+    <IdentityProvider>
+      <ReviewProvider>
+        <Shell admin={admin} items={items} pathname={pathname}>
+          {children}
+        </Shell>
+      </ReviewProvider>
+    </IdentityProvider>
+  );
+}
+
+function Shell({
+  children,
+  admin,
+  items,
+  pathname,
+}: {
+  children: React.ReactNode;
+  admin: boolean;
+  items: typeof APP_NAV;
+  pathname: string;
+}) {
+  return (
     <div className="flex min-h-svh flex-col">
       <div className="dither-overlay" aria-hidden />
 
@@ -72,7 +96,7 @@ export function AppShell({
 
           <div className="flex items-center gap-3">
             <AppNavMenu items={items} pathname={pathname} />
-            <ConnectionPill />
+            <ProfileMenu />
           </div>
         </div>
 
@@ -93,7 +117,23 @@ export function AppShell({
                     : "border-transparent text-ink-faint hover:text-ink"
                 }`}
               >
-                <item.icon size={15} strokeWidth={2} />
+                <span
+                  className={active ? "" : "opacity-90"}
+                  style={
+                    active
+                      ? undefined
+                      : {
+                          WebkitMaskImage:
+                            "radial-gradient(circle at 1px 1px, #000 0.85px, transparent 0)",
+                          maskImage:
+                            "radial-gradient(circle at 1px 1px, #000 0.85px, transparent 0)",
+                          WebkitMaskSize: "2px 2px",
+                          maskSize: "2px 2px",
+                        }
+                  }
+                >
+                  <item.icon size={16} strokeWidth={active ? 2 : 2.5} />
+                </span>
                 {item.label}
               </Link>
             );
@@ -121,6 +161,7 @@ export function AppShell({
             >
               FAQ
             </Link>
+            <ReviewLink />
           </div>
         </div>
       </footer>
@@ -128,30 +169,3 @@ export function AppShell({
   );
 }
 
-function ConnectionPill() {
-  const { address, disconnect } = useWallet();
-
-  if (!address) {
-    return (
-      <Link href="/connect" className="btn btn-primary !px-5 !py-2.5 !text-xs">
-        <Wallet size={15} strokeWidth={2} />
-        Connect
-      </Link>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={disconnect}
-      title="Disconnect"
-      className="group flex items-center gap-3 border border-edge px-4 py-2.5 transition-colors hover:border-ember/60"
-    >
-      <span className="size-1.5 rounded-full bg-signal group-hover:bg-ember" />
-      <span className="font-mono text-xs text-ink-dim group-hover:hidden">
-        {shortAddress(address, 4, 4)}
-      </span>
-      <span className="hidden font-mono text-xs text-ember group-hover:inline">Disconnect</span>
-    </button>
-  );
-}

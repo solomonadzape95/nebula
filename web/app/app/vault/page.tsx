@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 
+import { AllocationBar } from "@/components/site/allocation-bar";
 import { DataNotice } from "@/components/site/data-notice";
 import {
   BLEND_POOL_ID,
@@ -36,9 +37,25 @@ export default async function VaultPage() {
         <DataNotice chainOk />
       </div>
 
-      <div className="mt-10 flex h-3 w-full overflow-hidden border border-edge">
-        <div className="bg-signal" style={{ width: `${deployedPct}%` }} />
-        <div className="bg-signal-dim/40" style={{ width: `${100 - deployedPct}%` }} />
+      <div className="mt-10">
+        <AllocationBar
+          segments={[
+            {
+              label: "Supplied to Blend",
+              amount: formatStroops(deployed, 2),
+              pct: deployedPct,
+              note: "Earning borrower interest",
+              tone: "signal",
+            },
+            {
+              label: "Idle reserve",
+              amount: formatStroops(vault.idle, 2),
+              pct: 100 - deployedPct,
+              note: "Held back so ordinary withdrawals are instant",
+              tone: "dim",
+            },
+          ]}
+        />
       </div>
 
       <div className="mt-10 grid gap-px border border-edge bg-edge lg:grid-cols-2">

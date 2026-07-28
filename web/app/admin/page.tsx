@@ -5,7 +5,7 @@ import { Sparkline } from "@/components/dither-kit/sparkline";
 import { DataNotice } from "@/components/site/data-notice";
 import { formatStroops, fromStroops } from "@/lib/format";
 import { getDepositors, getIndexerStats, getPriceSeries, getSyncState } from "@/lib/indexer";
-import { FEEDBACK } from "@/lib/mock";
+import { getReviews } from "@/lib/profile";
 import { getVaultState } from "@/lib/stellar";
 
 const USER_TARGET = 10;
@@ -22,16 +22,17 @@ const FEEDBACK_TARGET = 8;
 export const revalidate = 30;
 
 export default async function AdminPage() {
-  const [depositors, stats, series, vault, sync] = await Promise.all([
+  const [depositors, stats, series, vault, sync, reviews] = await Promise.all([
     getDepositors(),
     getIndexerStats(),
     getPriceSeries(),
     getVaultState(),
     getSyncState(),
+    getReviews(),
   ]);
 
   const users = depositors.length;
-  const feedback = FEEDBACK.length;
+  const feedback = reviews.length;
   const priceData = series.map((p) => fromStroops(p.sharePrice));
 
   return (
@@ -70,7 +71,7 @@ export default async function AdminPage() {
             value={feedback}
             target={FEEDBACK_TARGET}
             href="/admin/feedback"
-            note="Structured responses from real testers, with what changed as a result."
+            note="Reviews left through the in-app button, with what changed as a result."
           />
         </div>
       </section>

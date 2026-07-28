@@ -1,9 +1,10 @@
 import Link from "next/link";
 
-import { Sparkline } from "@/components/dither-kit/sparkline";
 import { DepositCard } from "@/components/app/deposit-card";
+import { UsernamePrompt } from "@/components/app/profile-menu";
 import { DataNotice } from "@/components/site/data-notice";
-import { formatStroops, fromStroops } from "@/lib/format";
+import { VaultChart, type ChartPoint } from "@/components/site/vault-chart";
+import { formatStroops, fromStroops, shortDate } from "@/lib/format";
 import { getApy, getPriceSeries, getSyncState } from "@/lib/indexer";
 import { getVaultState, type VaultState } from "@/lib/stellar";
 
@@ -35,6 +36,7 @@ export default async function AppPage() {
       </div>
 
       <div className="mt-8">
+        <UsernamePrompt />
         <DataNotice
           chainOk={vault !== null}
           indexerOk={series.length > 0 || sync !== null}
@@ -124,7 +126,10 @@ function PriceCard({
   series: Awaited<ReturnType<typeof getPriceSeries>>;
   apy: Awaited<ReturnType<typeof getApy>>;
 }) {
-  const data = series.map((p) => fromStroops(p.sharePrice));
+  const data: ChartPoint[] = series.map((p) => ({
+    at: shortDate(p.at),
+    value: fromStroops(p.sharePrice),
+  }));
 
   return (
     <div className="panel p-7 sm:p-9">
@@ -144,8 +149,8 @@ function PriceCard({
       </div>
 
       {data.length > 1 ? (
-        <div className="mt-7 h-32">
-          <Sparkline data={data} color="green" variant="gradient" animate bloom="low" />
+        <div className="mt-7 h-44">
+          <VaultChart data={data} label="Share price" decimals={6} />
         </div>
       ) : (
         <p className="mt-7 border border-edge px-5 py-8 text-center text-sm text-ink-faint">

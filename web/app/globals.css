@@ -356,3 +356,20 @@
   --input: #1e232b;
   --ring: #3d8f6d;
 }
+
+/* Halftone sweep for loading placeholders, so waiting looks like the rest of the site. */
+@keyframes skeleton-sweep {
+  0% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0.35;
+  }
+}
+
+.skeleton {
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}

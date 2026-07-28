@@ -1,53 +1,7 @@
-import pg from "pg";
 import { cache } from "react";
 
-// numeric(40,0) exceeds Number.MAX_SAFE_INTEGER, so pg must hand it back as a string rather than
-// silently rounding it into a float. Stroop amounts are money; a rounded balance is a wrong one.
-pg.types.setTypeParser(pg.types.builtins.NUMERIC, (value) => value);
-pg.types.setTypeParser(pg.types.builtins.INT8, (value) => value);
+import { query } from "@/lib/db";
 
-/**
- * Read-only access to the indexer's database.
- *
- * Everything here answers a question with a time axis: what happened, who used it, how the price
- * moved. Anything about *right now* comes from the contracts instead, because a number the user is
- * about to act on must not come from a cache that could be minutes behind.
- *
- * Every function returns null or an empty array on failure. The indexer runs on a schedule and its
- * database may legitimately be unreachable; that should grey out a chart, not break a page.
- */
-
-let pool: pg.Pool | null = null;
-
-function getPool(): pg.Pool | null {
-  const url = process.env.DATABASE_URL;
-  if (!url) return null;
-
-  pool ??= new pg.Pool({
-    connectionString: url,
-    max: 4,
-    // A page render should not hang on a database that is not answering.
-    connectionTimeoutMillis: 4_000,
-    idleTimeoutMillis: 20_000,
-    ssl: /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false },
-  });
-  return pool;
-}
-
-async function query<T extends pg.QueryResultRow>(
-  sql: string,
-  params: unknown[] = [],
-): Promise<T[] | null> {
-  const db = getPool();
-  if (!db) return null;
-  try {
-    const { rows } = await db.query<T>(sql, params);
-    return rows;
-  } catch (error) {
-    console.error("[indexer] query failed:", (error as Error).message);
-    return null;
-  }
-}
 
 /* ────────────────────────────────────────────────────────────────── stats */
 

@@ -88,6 +88,17 @@ export function DepositCard({
   const receives =
     sharePrice === null ? 0 : mode === "deposit" ? parsed / sharePrice : parsed * sharePrice;
 
+  // What *you* can take out: your position's worth, capped by what the vault can actually free.
+  // The vault-wide figure alone told someone holding nothing that thousands were available.
+  const yourWorth =
+    balances?.shares != null && sharePrice !== null ? balances.shares * sharePrice : null;
+  const yourRedeemable =
+    yourWorth === null
+      ? null
+      : availableLiquidity === null
+        ? yourWorth
+        : Math.min(yourWorth, availableLiquidity);
+
   const submit = async () => {
     if (!valid || !address || busy) return;
     setError(null);
@@ -201,6 +212,12 @@ export function DepositCard({
           </p>
         )}
 
+        {mode === "withdraw" && balances?.shares === 0 && (
+          <p className="mt-3 text-sm text-ink-faint">
+            You have no nXLM yet. Deposit some XLM first and it will appear here.
+          </p>
+        )}
+
         <div className="mt-7 space-y-3 border-t border-edge pt-6">
           <Row
             k="You receive"
@@ -213,10 +230,18 @@ export function DepositCard({
           />
           <Row k="Network fee" v="~0.00001 XLM" />
           {mode === "withdraw" && (
-            <Row
-              k="Available to redeem now"
-              v={availableLiquidity === null ? "—" : `${formatNumber(availableLiquidity, 2)} XLM`}
-            />
+            <>
+              <Row
+                k="Your nXLM"
+                v={balances?.shares === null || balances === null
+                  ? "—"
+                  : `${formatNumber(balances.shares, 4)} nXLM`}
+              />
+              <Row
+                k="You can redeem now"
+                v={yourRedeemable === null ? "—" : `${formatNumber(yourRedeemable, 4)} XLM`}
+              />
+            </>
           )}
         </div>
 
