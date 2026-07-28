@@ -15,8 +15,7 @@ import { usePathname } from "next/navigation";
 
 import { AppNavMenu } from "@/components/app/app-nav-menu";
 import { Logo } from "@/components/site/logo";
-import { POSITION, xlm } from "@/lib/mock";
-import { shortAddress } from "@/lib/contracts";
+
 
 const APP_NAV = [
   { href: "/app", label: "Position", icon: LayoutDashboard },
@@ -127,26 +126,18 @@ export function AppShell({
   );
 }
 
+/**
+ * Always the connect prompt for now.
+ *
+ * Showing an address and a balance requires a connected wallet, and wallet connection lands with
+ * the Stellar Wallets Kit integration. Faking a connected state here would put an invented balance
+ * in the header of every screen, which is exactly the kind of number that gets believed.
+ */
 function ConnectionPill() {
-  if (!POSITION.connected) {
-    return (
-      <Link href="/connect" className="btn btn-primary !px-5 !py-2.5 !text-xs">
-        <Wallet size={15} strokeWidth={2} />
-        Connect
-      </Link>
-    );
-  }
-
   return (
-    <Link
-      href="/connect"
-      className="flex items-center gap-3 border border-edge px-4 py-2.5 transition-colors hover:border-ink-faint"
-    >
-      <span className="size-1.5 rounded-full bg-signal" />
-      <span className="font-mono text-xs text-ink-dim">{shortAddress(POSITION.address, 4, 4)}</span>
-      <span className="hidden font-mono text-xs text-ink-faint sm:inline">
-        {xlm(POSITION.walletBalance, 2)} XLM
-      </span>
+    <Link href="/connect" className="btn btn-primary !px-5 !py-2.5 !text-xs">
+      <Wallet size={15} strokeWidth={2} />
+      Connect
     </Link>
   );
 }

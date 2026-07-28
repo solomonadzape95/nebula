@@ -1,8 +1,10 @@
 import { ArrowUpRight, Download } from "lucide-react";
 
-import { MockNotice } from "@/components/site/mock-notice";
+import { DataNotice } from "@/components/site/data-notice";
 import { explorerAccount, explorerTx, shortAddress } from "@/lib/contracts";
-import { DEPOSITORS, VAULT, shortDate, xlm } from "@/lib/mock";
+import { formatStroops, shortDate } from "@/lib/format";
+import { getDepositors, getIndexerStats, getSyncState, type Depositor } from "@/lib/indexer";
+import { getVaultState } from "@/lib/stellar";
 
 const TARGET = 10;
 
@@ -13,10 +15,19 @@ const TARGET = 10;
  * interacted with the vault. Every row carries a transaction hash so a reviewer can verify any
  * line independently instead of taking the count on trust.
  */
-export default function AdminUsersPage() {
-  const total = DEPOSITORS.length;
+export const revalidate = 30;
+
+export default async function AdminUsersPage() {
+  const [depositors, stats, vault, sync] = await Promise.all([
+    getDepositors(),
+    getIndexerStats(),
+    getVaultState(),
+    getSyncState(),
+  ]);
+
+  const total = depositors.length;
   const pct = Math.min(100, (total / TARGET) * 100);
-  const totalDeposited = DEPOSITORS.reduce((sum, d) => sum + d.totalDeposited, 0);
+  const totalDeposited = depositors.reduce((sum, d) => sum + d.totalDeposited, 0n);
 
   return (
     <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
@@ -33,7 +44,11 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="mt-8">
-        <MockNotice what="These rows" />
+        <DataNotice
+          chainOk={vault !== null}
+          indexerOk={sync !== null}
+          indexerUpdatedAt={sync?.updatedAt ?? null}
+        />
       </div>
 
       {/* Progress against the onboarding requirement, stated plainly rather than buried. */}
@@ -61,14 +76,20 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="mt-8 grid grid-cols-2 gap-6 border-t border-edge pt-7 sm:grid-cols-4">
-          <Metric label="Total deposited" value={`${xlm(totalDeposited, 2)} XLM`} />
-          <Metric label="Currently locked" value={`${xlm(VAULT.totalAssets, 2)} XLM`} />
-          <Metric label="Harvests" value={String(VAULT.harvests)} />
-          <Metric label="Yield paid out" value={`${xlm(VAULT.grossYield, 7)} XLM`} />
+          <Metric label="Total deposited" value={`${formatStroops(totalDeposited, 2)} XLM`} />
+          <Metric
+            label="Currently locked"
+            value={vault ? `${formatStroops(vault.totalAssets, 2)} XLM` : "—"}
+          />
+          <Metric label="Harvests" value={stats ? String(stats.harvestCount) : "—"} />
+          <Metric
+            label="Yield paid out"
+            value={stats ? `${formatStroops(stats.grossYield, 7)} XLM` : "—"}
+          />
         </div>
       </div>
 
-      {total === 0 ? <EmptyState /> : <DepositorTable />}
+      {total === 0 ? <EmptyState /> : <DepositorTable rows={depositors} />}
     </div>
   );
 }
@@ -82,7 +103,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DepositorTable() {
+function DepositorTable({ rows }: { rows: Depositor[] }) {
   return (
     <>
       <div className="mt-10 hidden overflow-x-auto border border-edge lg:block">
@@ -99,17 +120,17 @@ function DepositorTable() {
             </tr>
           </thead>
           <tbody>
-            {DEPOSITORS.map((d, i) => (
-              <tr key={d.address} className="border-b border-edge/60 last:border-0">
+            {rows.map((d, i) => (
+              <tr key={d.account} className="border-b border-edge/60 last:border-0">
                 <td className="tabular px-5 py-5 font-mono text-sm text-ink-faint">{i + 1}</td>
                 <td className="px-5 py-5">
                   <a
-                    href={explorerAccount(d.address)}
+                    href={explorerAccount(d.account)}
                     target="_blank"
                     rel="noreferrer"
                     className="font-mono text-sm text-ink-dim transition-colors hover:text-signal"
                   >
-                    {shortAddress(d.address, 8, 8)}
+                    {shortAddress(d.account, 8, 8)}
                   </a>
                 </td>
                 <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink-dim">
@@ -119,7 +140,7 @@ function DepositorTable() {
                   {d.withdrawals}
                 </td>
                 <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink">
-                  {xlm(d.totalDeposited, 2)}
+                  {formatStroops(d.totalDeposited, 2)}
                 </td>
                 <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink-faint">
                   {shortDate(d.firstSeen)}
@@ -141,21 +162,21 @@ function DepositorTable() {
       </div>
 
       <div className="mt-10 space-y-px border border-edge bg-edge lg:hidden">
-        {DEPOSITORS.map((d, i) => (
-          <div key={d.address} className="bg-void p-5">
+        {rows.map((d, i) => (
+          <div key={d.account} className="bg-void p-5">
             <div className="flex items-center justify-between gap-4">
               <span className="tabular font-mono text-xs text-ink-faint">#{i + 1}</span>
               <a
-                href={explorerAccount(d.address)}
+                href={explorerAccount(d.account)}
                 target="_blank"
                 rel="noreferrer"
                 className="font-mono text-sm text-ink-dim transition-colors hover:text-signal"
               >
-                {shortAddress(d.address, 6, 6)}
+                {shortAddress(d.account, 6, 6)}
               </a>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-4">
-              <Small label="In" value={xlm(d.totalDeposited, 2)} />
+              <Small label="In" value={formatStroops(d.totalDeposited, 2)} />
               <Small label="Deposits" value={String(d.deposits)} />
               <Small label="Withdrawals" value={String(d.withdrawals)} />
             </div>

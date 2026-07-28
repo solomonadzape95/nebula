@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 
-import { MockNotice } from "@/components/site/mock-notice";
+import { DataNotice } from "@/components/site/data-notice";
 import {
   BLEND_POOL_ID,
   SHARE_TOKEN_ID,
@@ -9,10 +9,19 @@ import {
   explorerContract,
   shortAddress,
 } from "@/lib/contracts";
-import { VAULT, xlm } from "@/lib/mock";
+import { formatStroops } from "@/lib/format";
+import { getVaultState } from "@/lib/stellar";
 
-export default function VaultPage() {
-  const deployedPct = (VAULT.deployed / VAULT.totalAssets) * 100;
+export const revalidate = 30;
+
+export default async function VaultPage() {
+  const vault = await getVaultState();
+
+  if (!vault) return <Unavailable />;
+
+  const deployed = vault.strategies.reduce((sum, s) => sum + s.deployed, 0n);
+  const total = vault.totalAssets === 0n ? 1n : vault.totalAssets;
+  const deployedPct = (Number(deployed) / Number(total)) * 100;
 
   return (
     <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
@@ -24,7 +33,7 @@ export default function VaultPage() {
       </p>
 
       <div className="mt-8">
-        <MockNotice what="These balances" />
+        <DataNotice chainOk />
       </div>
 
       <div className="mt-10 flex h-3 w-full overflow-hidden border border-edge">
@@ -35,14 +44,14 @@ export default function VaultPage() {
       <div className="mt-10 grid gap-px border border-edge bg-edge lg:grid-cols-2">
         <Holding
           label="Supplied to Blend"
-          amount={VAULT.deployed}
+          amount={deployed}
           pct={deployedPct}
           body="Lent to borrowers who post collateral and pay interest. Nebula supplies without using the position as collateral and never borrows, so it carries no health factor and cannot be liquidated."
           id={STRATEGY_ID}
         />
         <Holding
           label="Idle reserve"
-          amount={VAULT.idle}
+          amount={vault.idle}
           pct={100 - deployedPct}
           body="Held back on purpose so ordinary withdrawals are instant and never have to unwind a lending position. Target is 10% of total assets."
           id={VAULT_ID}
@@ -80,7 +89,8 @@ export default function VaultPage() {
             vault address never enters the accounting, so it cannot move the share price.
           </p>
           <p className="tabular mt-6 font-mono text-sm text-ink-faint">
-            {xlm(VAULT.totalAssets, 4)} = {xlm(VAULT.idle, 4)} + {xlm(VAULT.deployed, 4)}
+            {formatStroops(vault.totalAssets, 4)} = {formatStroops(vault.idle, 4)} +{" "}
+            {formatStroops(deployed, 4)}
           </p>
         </div>
       </section>
@@ -96,7 +106,7 @@ function Holding({
   id,
 }: {
   label: string;
-  amount: number;
+  amount: bigint;
   pct: number;
   body: string;
   id: string;
@@ -108,7 +118,7 @@ function Holding({
         <span className="tabular font-mono text-sm text-signal">{pct.toFixed(1)}%</span>
       </div>
       <p className="tabular mt-4 font-mono text-3xl text-ink">
-        {xlm(amount, 2)} <span className="text-base text-ink-faint">XLM</span>
+        {formatStroops(amount, 2)} <span className="text-base text-ink-faint">XLM</span>
       </p>
       <p className="mt-5 text-base leading-relaxed text-ink-dim">{body}</p>
       <a
@@ -137,5 +147,18 @@ function ContractRow({ label, id, note }: { label: string; id: string; note: str
       </span>
       <span className="font-mono text-sm text-ink-dim">{shortAddress(id, 6, 6)}</span>
     </a>
+  );
+}
+
+function Unavailable() {
+  return (
+    <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
+      <h1 className="text-3xl font-medium tracking-tight text-ink sm:text-4xl">
+        Where your money is
+      </h1>
+      <div className="mt-8">
+        <DataNotice chainOk={false} />
+      </div>
+    </div>
   );
 }

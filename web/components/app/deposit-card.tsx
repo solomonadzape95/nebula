@@ -7,7 +7,7 @@ import { useState } from "react";
 
 import { DitherSpinner } from "@/components/ui/dither-loader";
 import { DURATION, ENTER } from "@/lib/easing";
-import { POSITION, VAULT, xlm } from "@/lib/mock";
+import { formatNumber } from "@/lib/format";
 
 type Mode = "deposit" | "withdraw";
 type TxState = "idle" | "signing" | "submitting" | "done" | "error";
@@ -19,18 +19,26 @@ type TxState = "idle" | "signing" | "submitting" | "done" | "error";
  * the target is under two minutes from landing to deposit. Lido, Yearn and Blend all do it this
  * way for the same reason.
  */
-export function DepositCard() {
+interface DepositCardProps {
+  /** XLM per nXLM, from the contract. Null when the chain could not be read. */
+  sharePrice: number | null;
+  depositsPaused: boolean;
+  availableLiquidity: number | null;
+}
+
+export function DepositCard({ sharePrice, depositsPaused, availableLiquidity }: DepositCardProps) {
   const [mode, setMode] = useState<Mode>("deposit");
   const [amount, setAmount] = useState("");
   const [state, setState] = useState<TxState>("idle");
 
-  const max = mode === "deposit" ? POSITION.walletBalance : POSITION.shares;
+  // Wallet balances need a connected wallet, which lands with the Stellar Wallets Kit
+  // integration. Until then the card is honest about being unable to check.
+  const connected = false;
   const parsed = Number(amount) || 0;
-  const tooLarge = parsed > max;
-  const valid = parsed > 0 && !tooLarge;
+  const valid = parsed > 0 && sharePrice !== null;
 
   // What you get out the other side. Deposits divide by the price, redemptions multiply by it.
-  const receives = mode === "deposit" ? parsed / VAULT.sharePrice : parsed * VAULT.sharePrice;
+  const receives = sharePrice === null ? 0 : mode === "deposit" ? parsed / sharePrice : parsed * sharePrice;
 
   const submit = () => {
     if (!valid) return;
@@ -39,7 +47,7 @@ export function DepositCard() {
     window.setTimeout(() => setState("error"), 2200);
   };
 
-  if (!POSITION.connected) return <DisconnectedCard />;
+  if (!connected) return <DisconnectedCard />;
 
   return (
     <div className="panel">
@@ -76,20 +84,12 @@ export function DepositCard() {
           <label htmlFor="amount" className="label">
             {mode === "deposit" ? "Amount to deposit" : "nXLM to redeem"}
           </label>
-          <button
-            type="button"
-            onClick={() => setAmount(String(max))}
-            className="font-mono text-xs text-ink-faint transition-colors hover:text-signal"
-          >
-            Max {xlm(max, 2)}
-          </button>
+          <span className="font-mono text-xs text-ink-faint">
+            {depositsPaused && mode === "deposit" ? "Deposits paused" : ""}
+          </span>
         </div>
 
-        <div
-          className={`mt-4 flex items-baseline gap-3 border-b pb-4 transition-colors ${
-            tooLarge ? "border-ember" : "border-edge focus-within:border-signal"
-          }`}
-        >
+        <div className="mt-4 flex items-baseline gap-3 border-b border-edge pb-4 transition-colors focus-within:border-signal">
           <input
             id="amount"
             type="text"
@@ -107,29 +107,34 @@ export function DepositCard() {
           </span>
         </div>
 
-        {tooLarge && (
-          <p className="mt-3 text-sm text-ember">
-            You only have {xlm(max, 4)} {mode === "deposit" ? "XLM" : "nXLM"}.
-          </p>
-        )}
-
         <div className="mt-7 space-y-3 border-t border-edge pt-6">
           <Row
             k="You receive"
-            v={`${xlm(receives, 4)} ${mode === "deposit" ? "nXLM" : "XLM"}`}
+            v={`${formatNumber(receives, 4)} ${mode === "deposit" ? "nXLM" : "XLM"}`}
             emphasis
           />
-          <Row k="Share price" v={`${xlm(VAULT.sharePrice, 7)} XLM`} />
+          <Row
+            k="Share price"
+            v={sharePrice === null ? "—" : `${formatNumber(sharePrice, 7)} XLM`}
+          />
           <Row k="Network fee" v="~0.00001 XLM" />
           {mode === "withdraw" && (
-            <Row k="Available to redeem now" v={`${xlm(VAULT.totalAssets, 2)} XLM`} />
+            <Row
+              k="Available to redeem now"
+              v={availableLiquidity === null ? "—" : `${formatNumber(availableLiquidity, 2)} XLM`}
+            />
           )}
         </div>
 
         <button
           type="button"
           onClick={submit}
-          disabled={!valid || state === "signing" || state === "submitting"}
+          disabled={
+            !valid ||
+            (mode === "deposit" && depositsPaused) ||
+            state === "signing" ||
+            state === "submitting"
+          }
           className="btn btn-primary mt-8 w-full !py-4 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {state === "signing" && (
@@ -143,7 +148,11 @@ export function DepositCard() {
             </>
           )}
           {(state === "idle" || state === "error" || state === "done") &&
-            (mode === "deposit" ? "Deposit XLM" : "Redeem nXLM")}
+            (mode === "deposit"
+              ? depositsPaused
+                ? "Deposits paused"
+                : "Deposit XLM"
+              : "Redeem nXLM")}
         </button>
 
         <AnimatePresence>

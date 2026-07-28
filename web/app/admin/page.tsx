@@ -2,8 +2,11 @@ import { ArrowUpRight, MessageSquare, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 
 import { Sparkline } from "@/components/dither-kit/sparkline";
-import { MockNotice } from "@/components/site/mock-notice";
-import { DEPOSITORS, FEEDBACK, PRICE_SERIES, VAULT, xlm } from "@/lib/mock";
+import { DataNotice } from "@/components/site/data-notice";
+import { formatStroops, fromStroops } from "@/lib/format";
+import { getDepositors, getIndexerStats, getPriceSeries, getSyncState } from "@/lib/indexer";
+import { FEEDBACK } from "@/lib/mock";
+import { getVaultState } from "@/lib/stellar";
 
 const USER_TARGET = 10;
 const FEEDBACK_TARGET = 8;
@@ -16,9 +19,20 @@ const FEEDBACK_TARGET = 8;
  * week, so they are shown as progress bars with the shortfall stated plainly rather than as
  * numbers that look fine in isolation.
  */
-export default function AdminPage() {
-  const users = DEPOSITORS.length;
+export const revalidate = 30;
+
+export default async function AdminPage() {
+  const [depositors, stats, series, vault, sync] = await Promise.all([
+    getDepositors(),
+    getIndexerStats(),
+    getPriceSeries(),
+    getVaultState(),
+    getSyncState(),
+  ]);
+
+  const users = depositors.length;
   const feedback = FEEDBACK.length;
+  const priceData = series.map((p) => fromStroops(p.sharePrice));
 
   return (
     <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
@@ -28,7 +42,11 @@ export default function AdminPage() {
       </p>
 
       <div className="mt-8">
-        <MockNotice what="These figures" />
+        <DataNotice
+          chainOk={vault !== null}
+          indexerOk={sync !== null}
+          indexerUpdatedAt={sync?.updatedAt ?? null}
+        />
       </div>
 
       <section className="mt-12">
@@ -69,29 +87,35 @@ export default function AdminPage() {
               <div>
                 <span className="label">Share price</span>
                 <p className="tabular mt-3 font-mono text-3xl text-signal sm:text-4xl">
-                  {xlm(VAULT.sharePrice, 7)}
+                  {vault ? formatStroops(vault.sharePrice, 7) : "—"}
                 </p>
               </div>
               <div className="text-right">
                 <span className="label">TVL</span>
                 <p className="tabular mt-3 font-mono text-xl text-ink">
-                  {xlm(VAULT.totalAssets, 2)}
+                  {vault ? formatStroops(vault.totalAssets, 2) : "—"}
                 </p>
               </div>
             </div>
-            <div className="mt-7 h-32">
-              <Sparkline data={PRICE_SERIES} color="green" variant="gradient" animate bloom="low" />
-            </div>
+            {priceData.length > 1 ? (
+              <div className="mt-7 h-32">
+                <Sparkline data={priceData} color="green" variant="gradient" animate bloom="low" />
+              </div>
+            ) : (
+              <p className="mt-7 border border-edge px-5 py-8 text-center text-sm text-ink-faint">
+                Not enough history to chart yet.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-px border border-edge bg-edge">
-            <Tile label="Harvests" value={String(VAULT.harvests)} />
-            <Tile label="Gross yield" value={xlm(VAULT.grossYield, 7)} />
-            <Tile label="Fees taken" value={xlm(VAULT.feesTaken, 7)} />
+            <Tile label="Harvests" value={stats ? String(stats.harvestCount) : "—"} />
+            <Tile label="Gross yield" value={stats ? formatStroops(stats.grossYield, 7) : "—"} />
+            <Tile label="Fees taken" value={stats ? formatStroops(stats.feesTaken, 7) : "—"} />
             <Tile
               label="Deposits"
-              value={VAULT.depositsPaused ? "Paused" : "Open"}
-              tone={VAULT.depositsPaused ? "ember" : "signal"}
+              value={vault?.depositsPaused ? "Paused" : "Open"}
+              tone={vault?.depositsPaused ? "ember" : "signal"}
             />
           </div>
         </div>

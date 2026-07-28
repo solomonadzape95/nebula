@@ -1,8 +1,10 @@
 import { AlertTriangle, Layers, PauseCircle, Sprout } from "lucide-react";
 
-import { MockNotice } from "@/components/site/mock-notice";
+import { DataNotice } from "@/components/site/data-notice";
 import { STRATEGY_ID, VAULT_ID, explorerContract, shortAddress } from "@/lib/contracts";
-import { VAULT, xlm } from "@/lib/mock";
+import { formatStroops } from "@/lib/format";
+import { getIndexerStats } from "@/lib/indexer";
+import { getVaultState } from "@/lib/stellar";
 
 /**
  * Keeper and admin controls.
@@ -12,9 +14,29 @@ import { VAULT, xlm } from "@/lib/mock";
  * its consequence spelled out, because a mis-clicked fee change is not undoable for the block it
  * lands in.
  */
-export default function AdminOpsPage() {
-  const idlePct = (VAULT.idle / VAULT.totalAssets) * 100;
-  const deployable = Math.max(0, VAULT.idle - VAULT.totalAssets * (VAULT.reserveBps / 10_000));
+export const revalidate = 30;
+
+export default async function AdminOpsPage() {
+  const [vault, stats] = await Promise.all([getVaultState(), getIndexerStats()]);
+
+  if (!vault) {
+    return (
+      <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
+        <h1 className="text-3xl font-medium tracking-tight text-ink sm:text-4xl">Operations</h1>
+        <div className="mt-8">
+          <DataNotice chainOk={false} />
+        </div>
+      </div>
+    );
+  }
+
+  const total = vault.totalAssets === 0n ? 1n : vault.totalAssets;
+  const deployed = vault.strategies.reduce((sum, st) => sum + st.deployed, 0n);
+  const idlePct = (Number(vault.idle) / Number(total)) * 100;
+  // Anything above the reserve target is what `allocate` would push out this run.
+  const reserveTarget = (vault.totalAssets * BigInt(vault.reserveBps)) / 10_000n;
+  const deployable = vault.idle > reserveTarget ? vault.idle - reserveTarget : 0n;
+  const strategy = vault.strategies[0];
 
   return (
     <div className="mx-auto max-w-app px-5 py-10 sm:px-8 sm:py-14">
@@ -25,7 +47,7 @@ export default function AdminOpsPage() {
       </p>
 
       <div className="mt-8">
-        <MockNotice what="These readings" />
+        <DataNotice chainOk indexerOk={stats !== null} />
       </div>
 
       <section className="mt-10">
@@ -39,18 +61,22 @@ export default function AdminOpsPage() {
             icon={Layers}
             title="Allocate"
             body="Pushes idle XLM above the reserve target into strategies, split by weight."
-            readout={`${xlm(deployable, 4)} XLM deployable now`}
-            detail={`Reserve is at ${idlePct.toFixed(1)}%, target ${VAULT.reserveBps / 100}%`}
+            readout={`${formatStroops(deployable, 4)} XLM deployable now`}
+            detail={`Reserve is at ${idlePct.toFixed(1)}%, target ${vault.reserveBps / 100}%`}
             action="Run allocate"
-            disabled={deployable <= 0}
+            disabled={deployable <= 0n}
             disabledNote="Nothing above the reserve target to deploy."
           />
           <Job
             icon={Sprout}
             title="Harvest"
             body="Collects interest from every strategy, takes the protocol fee, and credits the rest to the share price."
-            readout={`${VAULT.harvests} harvests to date`}
-            detail={`${xlm(VAULT.grossYield, 7)} XLM gross, ${xlm(VAULT.feesTaken, 7)} in fees`}
+            readout={stats ? `${stats.harvestCount} harvests to date` : "Harvest count unavailable"}
+            detail={
+              stats
+                ? `${formatStroops(stats.grossYield, 7)} XLM gross, ${formatStroops(stats.feesTaken, 7)} in fees`
+                : "Indexer offline"
+            }
             action="Run harvest"
           />
         </div>
@@ -92,16 +118,24 @@ export default function AdminOpsPage() {
                     {shortAddress(STRATEGY_ID, 6, 6)}
                   </span>
                 </td>
-                <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink-dim">100%</td>
                 <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink-dim">
-                  Uncapped
+                  {strategy ? `${strategy.weight_bps / 100}%` : "—"}
+                </td>
+                <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink-dim">
+                  {!strategy || strategy.cap === 0n ? "Uncapped" : formatStroops(strategy.cap, 0)}
                 </td>
                 <td className="tabular px-5 py-5 text-right font-mono text-sm text-ink">
-                  {xlm(VAULT.deployed, 2)} XLM
+                  {formatStroops(deployed, 2)} XLM
                 </td>
                 <td className="px-5 py-5 text-right">
-                  <span className="border border-signal-dim/50 px-2 py-1 font-mono text-[0.625rem] tracking-wider text-signal uppercase">
-                    Active
+                  <span
+                    className={`border px-2 py-1 font-mono text-[0.625rem] tracking-wider uppercase ${
+                      strategy?.paused
+                        ? "border-ember/50 text-ember"
+                        : "border-signal-dim/50 text-signal"
+                    }`}
+                  >
+                    {strategy?.paused ? "Paused" : "Active"}
                   </span>
                 </td>
               </tr>
@@ -117,15 +151,15 @@ export default function AdminOpsPage() {
         </div>
 
         <div className="grid gap-px border border-edge bg-edge md:grid-cols-3">
-          <Param label="Protocol fee" value={`${VAULT.feeBps / 100}%`} note="Of harvested yield" />
+          <Param label="Protocol fee" value={`${vault.feeBps / 100}%`} note="Of harvested yield" />
           <Param
             label="Reserve target"
-            value={`${VAULT.reserveBps / 100}%`}
+            value={`${vault.reserveBps / 100}%`}
             note="Kept idle for instant exits"
           />
           <Param
             label="Deposit cap"
-            value={`${VAULT.depositCap.toLocaleString("en-US")} XLM`}
+            value={vault.depositCap === 0n ? "Uncapped" : `${formatStroops(vault.depositCap, 0)} XLM`}
             note="Bounds beta exposure"
           />
         </div>
@@ -150,7 +184,7 @@ export default function AdminOpsPage() {
           <div className="grid gap-px bg-ember/15 md:grid-cols-2">
             <Restricted
               icon={PauseCircle}
-              title={VAULT.depositsPaused ? "Resume deposits" : "Pause deposits"}
+              title={vault.depositsPaused ? "Resume deposits" : "Pause deposits"}
               body="Stops new money entering. Existing holders are unaffected and can still redeem in full."
             />
             <Restricted

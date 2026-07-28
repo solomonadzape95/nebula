@@ -2,7 +2,8 @@ import { Check, MessageSquare, X } from "lucide-react";
 
 import { MockNotice } from "@/components/site/mock-notice";
 import { explorerAccount, shortAddress } from "@/lib/contracts";
-import { FEEDBACK, shortDate, type FeedbackRow } from "@/lib/mock";
+import { shortDate } from "@/lib/format";
+import { FEEDBACK, type FeedbackRow } from "@/lib/mock";
 
 const TARGET = 8;
 

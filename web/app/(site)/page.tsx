@@ -11,20 +11,12 @@ import { NxlmDemo } from "@/components/site/nxlm-demo";
 import { Stat } from "@/components/site/stat";
 import { YieldChart } from "@/components/site/yield-chart";
 import { FEATURED_FAQ } from "@/lib/faq";
+import { formatStroops } from "@/lib/format";
+import { getApy, getIndexerStats } from "@/lib/indexer";
+import { getVaultState } from "@/lib/stellar";
 
-/**
- * Placeholder figures.
- *
- * These are the real values read off the testnet vault at the time of writing, so the layout is
- * designed against realistic magnitudes rather than lorem-ipsum numbers. They are NOT live yet.
- * Wiring them to the contract and the indexer is the next step.
- */
-const PLACEHOLDER = {
-  tvl: "130.00",
-  sharePrice: "1.0001421",
-  depositors: "2",
-  apy: null as string | null,
-};
+/** The vault moves every ledger, so the landing figures refresh on a short window. */
+export const revalidate = 30;
 
 export default function Home() {
   return (
@@ -99,23 +91,29 @@ function Hero() {
 
 /* ───────────────────────────────────────────────────────────── stat band */
 
-function StatBand() {
+async function StatBand() {
+  const [vault, stats, apy] = await Promise.all([getVaultState(), getIndexerStats(), getApy()]);
+
   return (
     <section className="relative z-10 border-y border-edge bg-void">
       <div className="mx-auto grid max-w-app grid-cols-2 gap-x-8 gap-y-10 px-5 py-12 sm:px-8 lg:grid-cols-4">
-        <Stat label="Total value locked" value={PLACEHOLDER.tvl} unit="XLM" />
+        <Stat
+          label="Total value locked"
+          value={vault ? formatStroops(vault.totalAssets, 2) : "—"}
+          unit="XLM"
+        />
         <Stat
           label="Share price"
-          value={PLACEHOLDER.sharePrice}
+          value={vault ? formatStroops(vault.sharePrice, 7) : "—"}
           unit="XLM"
           tone="signal"
           hint="only goes up"
         />
-        <Stat label="Depositors" value={PLACEHOLDER.depositors} />
+        <Stat label="Depositors" value={stats ? String(stats.uniqueDepositors) : "—"} />
         <Stat
           label="Realized APY"
-          value={PLACEHOLDER.apy ?? "n/a"}
-          hint={PLACEHOLDER.apy ? undefined : "not enough history yet"}
+          value={apy ? `${apy.percent.toFixed(2)}%` : "n/a"}
+          hint={apy ? `over ${apy.windowHours.toFixed(0)}h` : "not enough history yet"}
         />
       </div>
     </section>
