@@ -1,5 +1,6 @@
 import { NETWORK, VAULT_ID } from "@/lib/contracts";
 import { toStroops } from "@/lib/format";
+import { loadKit } from "@/lib/wallet-kit";
 
 const RPC_URL =
   NETWORK === "mainnet" ? "https://mainnet.sorobanrpc.com" : "https://soroban-testnet.stellar.org";
@@ -89,13 +90,12 @@ async function invokeVault({
   amount: number;
   onPhase?: (phase: TxPhase) => void;
 }): Promise<string> {
+  // Through the shared loader so the kit is guaranteed initialised, even if the user hits deposit
+  // before the session-restore effect has finished.
   const [
     { Address, BASE_FEE, Contract, Networks, TransactionBuilder, nativeToScVal, rpc },
-    { StellarWalletsKit },
-  ] = await Promise.all([
-    import("@stellar/stellar-sdk"),
-    import("@creit.tech/stellar-wallets-kit"),
-  ]);
+    kit,
+  ] = await Promise.all([import("@stellar/stellar-sdk"), loadKit()]);
 
   const passphrase = NETWORK === "mainnet" ? Networks.PUBLIC : Networks.TESTNET;
   const server = new rpc.Server(RPC_URL);
@@ -127,7 +127,7 @@ async function invokeVault({
 
   let signedXdr: string;
   try {
-    const result = await StellarWalletsKit.signTransaction(prepared.toXDR(), {
+    const result = await kit.signTransaction(prepared.toXDR(), {
       networkPassphrase: passphrase,
       address,
     });
