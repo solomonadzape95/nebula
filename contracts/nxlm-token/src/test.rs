@@ -85,6 +85,42 @@ fn mint_requires_minter_auth() {
 }
 
 #[test]
+fn burn_requires_the_vault_not_just_the_holder() {
+    let env = Env::default();
+    let vault = Address::generate(&env);
+    let holder = Address::generate(&env);
+    let contract_id = env.register(
+        NxlmToken,
+        (
+            vault.clone(),
+            7_u32,
+            String::from_str(&env, "Nebula Staked XLM"),
+            String::from_str(&env, "nXLM"),
+        ),
+    );
+    let token = NxlmTokenClient::new(&env, &contract_id);
+
+    env.mock_all_auths();
+    token.mint(&holder, &1_000);
+
+    // Now authorize the holder and nobody else, which is what a wallet's generic "burn token"
+    // button produces. Letting this through would destroy the shares while the vault's
+    // `total_shares` kept counting them, stranding the underlying they were a claim on.
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &holder,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "burn",
+            args: (holder.clone(), 1_000_i128).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+
+    assert!(token.try_burn(&holder, &1_000).is_err());
+    assert_eq!(token.balance(&holder), 1_000, "the claim survives intact");
+}
+
+#[test]
 fn transfer_moves_balance() {
     let f = setup();
     let alice = Address::generate(&f.env);

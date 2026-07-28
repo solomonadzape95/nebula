@@ -9,6 +9,11 @@ publish.workspace = true
 crate-type = ["lib", "cdylib"]
 doctest = false
 
+[features]
+# Exposes the controls that make this strategy misbehave on demand. Off by default so they cannot
+# reach a deployable wasm; the vault's dev-dependency turns it on for the test suite.
+testutils = []
+
 [dependencies]
 soroban-sdk = { workspace = true }
 nebula-interfaces = { workspace = true }

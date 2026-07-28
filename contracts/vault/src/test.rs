@@ -587,6 +587,151 @@ fn a_strategy_for_the_wrong_asset_is_rejected() {
     );
 }
 
+#[test]
+fn a_strategy_bound_to_another_vault_is_rejected() {
+    let f = setup();
+    let other_vault = Address::generate(&f.env);
+    let strategy = f.env.register(
+        MockStrategy,
+        (f.underlying.address.clone(), other_vault),
+    );
+
+    // Registering it would let `allocate` push assets somewhere this vault has no authority to
+    // withdraw from — a one-way door discovered at the first redemption that needed the liquidity.
+    assert_eq!(
+        f.vault
+            .try_add_strategy(&strategy, &5_000, &0)
+            .err()
+            .unwrap()
+            .unwrap(),
+        VaultError::StrategyVaultMismatch.into()
+    );
+}
+
+// ------------------------------------------------------------------ strategy losses
+
+#[test]
+fn harvest_writes_down_a_strategy_that_lost_value() {
+    let f = setup();
+    let user = f.user_with(1_000 * XLM);
+    f.vault.deposit(&user, &(1_000 * XLM));
+    let (strategy, client) = f.new_strategy(10_000, 0);
+    f.vault.allocate();
+
+    assert_eq!(f.vault.strategies().get_unchecked(0).deployed, 1_000 * XLM);
+    let price_before = f.vault.share_price();
+
+    client.simulate_loss(&(200 * XLM));
+    let credited = f.vault.harvest();
+
+    assert_eq!(credited, -(200 * XLM), "harvest reports the drawdown");
+    assert_eq!(f.vault.total_assets(), 800 * XLM);
+    assert_eq!(f.vault.strategies().get_unchecked(0).deployed, 800 * XLM);
+    assert!(
+        f.vault.share_price() < price_before,
+        "a share is worth less after the venue lost money"
+    );
+    f.assert_invariant();
+}
+
+#[test]
+fn a_loss_is_split_across_holders_rather_than_paid_to_whoever_leaves_first() {
+    // Half idle, half deployed, so the vault can pay the first redeemer in full out of the reserve
+    // if it is quoting a stale price. That is exactly the race being tested.
+    let f = setup_with(0, 5_000, 0);
+    let alice = f.user_with(1_000 * XLM);
+    let bob = f.user_with(1_000 * XLM);
+
+    let alice_shares = f.vault.deposit(&alice, &(1_000 * XLM));
+    let bob_shares = f.vault.deposit(&bob, &(1_000 * XLM));
+
+    let (_, client) = f.new_strategy(10_000, 0);
+    f.vault.allocate();
+    assert_eq!(f.vault.idle(), 1_000 * XLM);
+
+    // The venue loses 20% of everything. Nobody has harvested, so the vault has not been told.
+    client.simulate_loss(&(200 * XLM));
+
+    // Alice sprints for the exit before the keeper runs.
+    let alice_out = f.vault.redeem(&alice, &alice_shares);
+    let bob_out = f.vault.redeem(&bob, &bob_shares);
+
+    assert!(
+        alice_out < 1_000 * XLM,
+        "redeeming first must not pay out at the pre-loss price"
+    );
+    // 200 XLM of loss across 2000 XLM of deposits is 10% each, and neither of them can dodge it by
+    // being first. The tolerance is share rounding and the dead-share lock, not slippage.
+    assert!(
+        (alice_out - bob_out).abs() < XLM / 100,
+        "alice got {alice_out} and bob got {bob_out}; a loss must land on both equally"
+    );
+    assert!(alice_out > 890 * XLM && alice_out < 900 * XLM);
+    f.assert_invariant();
+}
+
+#[test]
+fn depositing_after_an_unreported_loss_buys_in_at_the_lowered_price() {
+    let f = setup();
+    let alice = f.user_with(1_000 * XLM);
+    let bob = f.user_with(1_000 * XLM);
+
+    f.vault.deposit(&alice, &(1_000 * XLM));
+    let (_, client) = f.new_strategy(10_000, 0);
+    f.vault.allocate();
+
+    client.simulate_loss(&(500 * XLM));
+
+    // Without marking first, Bob would pay 1000 for a claim on 500 and hand Alice half of it.
+    let bob_shares = f.vault.deposit(&bob, &(1_000 * XLM));
+
+    assert_eq!(f.vault.total_assets(), 1_500 * XLM);
+    assert!(
+        f.vault.preview_redeem(&bob_shares) > 995 * XLM,
+        "bob paid the post-loss price, so his claim is worth what he put in"
+    );
+    f.assert_invariant();
+}
+
+#[test]
+fn no_fee_is_charged_on_a_harvest_that_nets_out_negative() {
+    let f = setup_with(2_000, 0, 0); // 20% fee
+    let user = f.user_with(1_000 * XLM);
+    f.vault.deposit(&user, &(1_000 * XLM));
+    let (strategy, client) = f.new_strategy(10_000, 0);
+    f.vault.allocate();
+
+    // 50 XLM of yield against 200 XLM of losses.
+    f.accrue_yield(&strategy, 50 * XLM);
+    client.simulate_loss(&(200 * XLM));
+    f.vault.harvest();
+
+    assert_eq!(
+        f.underlying.balance(&f.fee_recipient),
+        0,
+        "the protocol does not bill for a period it lost money in"
+    );
+    f.assert_invariant();
+}
+
+#[test]
+fn the_share_token_cannot_be_swept() {
+    let f = setup();
+    let user = f.user_with(100 * XLM);
+    f.vault.deposit(&user, &(100 * XLM));
+
+    // The vault's own nXLM is the dead-share lock, not a stray donation.
+    assert_eq!(
+        f.vault
+            .try_sweep(&f.shares.address.clone(), &f.admin)
+            .err()
+            .unwrap()
+            .unwrap(),
+        VaultError::SweepProtected.into()
+    );
+    assert_eq!(f.shares.balance(&f.vault_id), 1_000);
+}
+
 // ------------------------------------------------------------------ pause & caps
 
 #[test]

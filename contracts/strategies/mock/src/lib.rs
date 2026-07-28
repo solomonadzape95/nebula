@@ -52,10 +52,23 @@ impl MockStrategy {
         env.storage().instance().set(&DataKey::Pending, &0i128);
         env.storage().instance().set(&DataKey::Overreport, &0i128);
     }
+}
 
+/// The controls that make this strategy misbehave on demand.
+///
+/// Compiled only under the `testutils` feature, which nothing but the vault's dev-dependency turns
+/// on. They take no authorisation by design — a test that had to satisfy `require_auth` to simulate
+/// a venue losing money would be testing the mock rather than the vault. That is exactly why they
+/// must not exist in a deployable build: `accrue` moves the strategy's balance into the harvestable
+/// pot, so on-chain it would let any passer-by hand the vault its own principal and have it booked
+/// as yield, while `simulate_loss` would strand every deployed asset by pinning `max_withdrawable`
+/// at zero. Behind the feature flag they are unreachable because they are not in the wasm.
+#[cfg(feature = "testutils")]
+#[contractimpl]
+impl MockStrategy {
     /// Record yield that has already been transferred into this contract.
     ///
-    /// Test-only: mint the underlying to this address first, then call this to make it harvestable.
+    /// Mint the underlying to this address first, then call this to make it harvestable.
     pub fn accrue(env: Env, amount: i128) {
         let pending: i128 = read(&env, &DataKey::Pending);
         env.storage()

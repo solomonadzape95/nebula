@@ -31,8 +31,8 @@ use nebula_interfaces::{ShareTokenClient, StrategyClient};
 
 pub use error::VaultError;
 use events::{
-    Allocate, Deposit, DepositsPaused, Harvest, StrategyAdded, StrategyRemoved, StrategyUpdated,
-    Unwind, Withdraw,
+    Allocate, Deposit, DepositsPaused, Harvest, StrategyAdded, StrategyLoss, StrategyRemoved,
+    StrategyUpdated, Unwind, Withdraw,
 };
 use math::{apply_bps, assets_for_shares, checked_add, checked_sub, shares_for_assets};
 pub use storage::{Config, Params, StrategyInfo};
@@ -115,6 +115,10 @@ impl NebulaVault {
         }
         extend_instance(&env);
 
+        // Price the vault before quoting it. Buying into a stale price means paying for value the
+        // vault no longer has, and the loss would land on the depositor the moment it was noticed.
+        mark_to_market(&env);
+
         let config = read_config(&env);
         let params = read_params(&env);
         let total_assets = read_total_assets(&env);
@@ -179,6 +183,12 @@ impl NebulaVault {
             panic_with_error!(&env, VaultError::InvalidAmount);
         }
         extend_instance(&env);
+
+        // The reason this is here rather than only in `harvest`: without it, the first holders out
+        // after a venue loss are paid at the old price out of everyone else's principal, and the
+        // stragglers find the vault empty. Marking first means the drawdown is already in the
+        // number this redemption is quoted at, so leaving early buys nothing.
+        mark_to_market(&env);
 
         let config = read_config(&env);
         let total_assets = read_total_assets(&env);
@@ -274,9 +284,18 @@ impl NebulaVault {
         write_idle(&env, remaining_idle);
     }
 
-    /// Claim yield from every strategy, take the protocol fee, credit the rest to share price.
+    /// Claim yield from every strategy, mark each one to market, take the protocol fee, and credit
+    /// the rest to share price.
     ///
-    /// Returns the net gain added to `total_assets`.
+    /// Returns the net gain added to `total_assets`, which is negative in a drawdown.
+    ///
+    /// This is the only place the vault revalues a venue, and it has to be: `deployed` is a cost
+    /// basis, so nothing else in the contract can tell the difference between a strategy holding
+    /// its principal and a strategy that has lost half of it. Without the reconciliation below the
+    /// share price could only ever rise, and the first holders to redeem after a loss would be paid
+    /// at a price the vault could no longer honour — taking the shortfall out of whoever was slowest
+    /// to leave. Recognising the loss here prices it into every share at once, which is the only
+    /// distribution that does not reward speed.
     pub fn harvest(env: Env) -> i128 {
         let config = read_config(&env);
         config.keeper.require_auth();
@@ -300,30 +319,41 @@ impl NebulaVault {
             gross = checked_add(&env, gross, actual);
         }
 
-        if gross == 0 {
+        // Reconcile after sweeping, not before: until the surplus has been pulled out, a healthy
+        // strategy is holding more than its basis and there is nothing to see.
+        let losses = mark_to_market(&env);
+
+        if gross == 0 && losses == 0 {
             return 0;
         }
 
-        let fee = apply_bps(&env, gross, params.fee_bps);
+        // The fee is charged on what the vault actually made this period, so a harvest that nets
+        // out negative is not billed. Taking a cut of the gains while holders absorb the losses
+        // would be charging for the good half of an outcome the vault delivered whole.
+        let fee = apply_bps(&env, checked_sub(&env, gross, losses).max(0), params.fee_bps);
         let net = checked_sub(&env, gross, fee);
 
         if fee > 0 {
             token.transfer(&vault, &config.fee_recipient, &fee);
         }
 
+        // `net` is underlying that physically arrived, so it lands in `idle` whatever the losses
+        // did; `mark_to_market` has already taken them off `total_assets`.
         write_total_assets(&env, checked_add(&env, read_total_assets(&env), net));
         write_idle(&env, checked_add(&env, read_idle(&env), net));
+
+        let credited = checked_sub(&env, net, losses);
 
         Harvest {
             gross,
             fee,
-            net,
+            net: credited,
             share_price: Self::share_price(env.clone()),
             total_assets: read_total_assets(&env),
         }
         .publish(&env);
 
-        net
+        credited
     }
 
     // ---------------------------------------------------------------- views
@@ -408,8 +438,16 @@ impl NebulaVault {
         if find_strategy(&strategies, &address).is_some() {
             panic_with_error!(&env, VaultError::StrategyAlreadyRegistered);
         }
-        if StrategyClient::new(&env, &address).underlying() != config.underlying {
+        let client = StrategyClient::new(&env, &address);
+        if client.underlying() != config.underlying {
             panic_with_error!(&env, VaultError::StrategyAssetMismatch);
+        }
+        // A strategy only accepts instructions from the one vault it was constructed for. Adding
+        // one pointed at a different vault would let `allocate` push assets in that nothing could
+        // ever pull back out, so this is checked before any capital can reach it rather than
+        // discovered at the first redemption that needs the liquidity.
+        if client.vault() != env.current_contract_address() {
+            panic_with_error!(&env, VaultError::StrategyVaultMismatch);
         }
 
         strategies.push_back(StrategyInfo {
@@ -528,6 +566,14 @@ impl NebulaVault {
     /// invisible to the share price and would otherwise be stranded forever.
     pub fn sweep(env: Env, token: Address, to: Address) -> i128 {
         let config = require_admin(&env);
+
+        // The vault's own nXLM is the dead-share lock, not a donation. Sweeping it would hand the
+        // admin redeemable shares and let total supply fall back to zero, which is the one state
+        // the share-rounding guarantees assume cannot recur.
+        if token == config.share_token {
+            panic_with_error!(&env, VaultError::SweepProtected);
+        }
+
         let client = TokenClient::new(&env, &token);
         let balance = client.balance(&env.current_contract_address());
 
@@ -571,6 +617,51 @@ fn assert_weights_valid(env: &Env, strategies: &Vec<StrategyInfo>) {
     if total > BPS_DENOMINATOR {
         panic_with_error!(env, VaultError::InvalidWeights);
     }
+}
+
+/// Write off any shortfall between what a strategy holds and what the vault deployed there.
+///
+/// Returns the total written off, and leaves `total_assets == idle + Σ deployed` intact.
+///
+/// `deployed` is a cost basis, so on its own it cannot tell a strategy sitting on its principal
+/// apart from one that has lost half of it. Every entry point that trades against the share price
+/// calls this first, because a price that cannot fall is not a price: the shortfall does not go
+/// away when it is ignored, it just gets paid by whoever redeems last. Recognising it here charges
+/// it to every share at the same instant, which is the only split that does not reward being quick.
+///
+/// Only losses are recognised. A strategy holding *more* than its basis is sitting on unrealized
+/// yield, and crediting that before it has been swept into the vault would let a venue raise the
+/// share price by asserting a number, which is the thing `harvest` measures rather than trusts.
+fn mark_to_market(env: &Env) -> i128 {
+    let mut strategies = read_strategies(env);
+    let mut losses = 0i128;
+
+    for index in 0..strategies.len() {
+        let mut info = strategies.get_unchecked(index);
+        let held = StrategyClient::new(env, &info.address).total_assets();
+        if held >= info.deployed {
+            continue;
+        }
+
+        let shortfall = checked_sub(env, info.deployed, held);
+        losses = checked_add(env, losses, shortfall);
+
+        info.deployed = held;
+        strategies.set(index, info.clone());
+
+        StrategyLoss {
+            strategy: info.address,
+            amount: shortfall,
+        }
+        .publish(env);
+    }
+
+    if losses > 0 {
+        write_strategies(env, &strategies);
+        write_total_assets(env, checked_sub(env, read_total_assets(env), losses).max(0));
+    }
+
+    losses
 }
 
 /// Free up enough idle underlying to cover `needed`, unwinding strategies in registry order.

@@ -16,4 +16,4 @@ nebula-interfaces = { workspace = true }
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 nxlm-token = { path = "../nxlm-token" }
-nebula-strategy-mock = { path = "../strategies/mock" }
+nebula-strategy-mock = { path = "../strategies/mock", features = ["testutils"] }

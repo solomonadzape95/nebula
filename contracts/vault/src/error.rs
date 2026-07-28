@@ -35,11 +35,15 @@ pub enum VaultError {
     InvalidWeights = 34,
     /// Cannot remove a strategy that still holds assets.
     StrategyNotEmpty = 35,
+    /// Strategy does not name this vault as its owner, so this vault could not withdraw from it.
+    StrategyVaultMismatch = 36,
 
     /// Fee is expressed in basis points and cannot exceed the configured maximum.
     InvalidFee = 40,
     /// Reserve target is expressed in basis points and cannot exceed 100%.
     InvalidReserve = 41,
+    /// The share token is vault accounting, not a stray donation, and cannot be swept.
+    SweepProtected = 42,
 
     /// Arithmetic overflowed. Reaching this means an input was absurd.
     MathOverflow = 50,

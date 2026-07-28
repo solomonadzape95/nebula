@@ -58,6 +58,20 @@ pub struct Unwind {
     pub amount: i128,
 }
 
+/// A strategy is holding less than the vault deployed there, and the difference has been written
+/// off against `total_assets`.
+///
+/// Emitted from `harvest`, which is the only place the vault marks a venue to market. The indexer
+/// needs this to explain a share price that fell: without it a drawdown is indistinguishable from
+/// a bug in the price series.
+#[contractevent(topics = ["strategy_loss"], data_format = "single-value")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StrategyLoss {
+    #[topic]
+    pub strategy: Address,
+    pub amount: i128,
+}
+
 #[contractevent(topics = ["strategy_added"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StrategyAdded {

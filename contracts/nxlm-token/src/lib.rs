@@ -129,8 +129,18 @@ impl TokenInterface for NxlmToken {
         Transfer { from, to, amount }.publish(&env);
     }
 
+    /// Destroy shares. Requires the holder's authorisation *and* the vault's.
+    ///
+    /// The second requirement is a deliberate departure from plain SEP-41. nXLM is a receipt: the
+    /// vault's `total_shares` is the only record of how many exist, and it is written inside
+    /// `redeem`. A burn that bypassed the vault would leave that number too high forever, so every
+    /// remaining holder would be quoted a share price below what the vault can actually pay, and
+    /// the underlying behind the destroyed shares would be unreachable by anyone — including the
+    /// person who burned them. Requiring the minter means the only way to destroy a share is the
+    /// path that also hands back what it was worth.
     fn burn(env: Env, from: Address, amount: i128) {
         from.require_auth();
+        read_minter(&env).require_auth();
         check_non_negative(&env, amount);
 
         extend_instance(&env);
@@ -139,8 +149,13 @@ impl TokenInterface for NxlmToken {
         Burn { from, amount }.publish(&env);
     }
 
+    /// Burn against an allowance. Gated on the vault for the same reason as [`Self::burn`], which
+    /// leaves it unreachable in practice: the vault redeems from `from` directly and never spends
+    /// an allowance. It stays implemented rather than panicking so the token still satisfies the
+    /// interface every SEP-41 integrator compiles against.
     fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
         spender.require_auth();
+        read_minter(&env).require_auth();
         check_non_negative(&env, amount);
 
         extend_instance(&env);
