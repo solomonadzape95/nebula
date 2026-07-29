@@ -100,6 +100,14 @@ export interface Depositor {
   firstSeen: Date;
   lastSeen: Date;
   firstTxHash: string;
+  /**
+   * How many distinct UTC days this address acted on.
+   *
+   * A batch of wallets scripted in one sitting all show 1. Someone who deposited, left, and came
+   * back to check on it shows 2 or more. It is the cheapest available signal for the difference,
+   * and it is reported rather than filtered on — the judgement belongs to whoever reads the file.
+   */
+  daysActive: number;
 }
 
 /**
@@ -117,6 +125,7 @@ export async function depositors(db: Db): Promise<Depositor[]> {
     first_seen: Date;
     last_seen: Date;
     first_tx_hash: string;
+    days_active: string;
   }>(
     `SELECT account,
             COUNT(*) FILTER (WHERE action = 'deposit')  AS deposits,
@@ -124,7 +133,8 @@ export async function depositors(db: Db): Promise<Depositor[]> {
             COALESCE(SUM(assets) FILTER (WHERE action = 'deposit'), 0) AS total_deposited,
             MIN(ledger_closed_at) AS first_seen,
             MAX(ledger_closed_at) AS last_seen,
-            (ARRAY_AGG(tx_hash ORDER BY ledger_closed_at ASC))[1] AS first_tx_hash
+            (ARRAY_AGG(tx_hash ORDER BY ledger_closed_at ASC))[1] AS first_tx_hash,
+            COUNT(DISTINCT date_trunc('day', ledger_closed_at)) AS days_active
        FROM user_actions
       GROUP BY account
      HAVING COUNT(*) FILTER (WHERE action = 'deposit') > 0
@@ -139,6 +149,83 @@ export async function depositors(db: Db): Promise<Depositor[]> {
     firstSeen: r.first_seen,
     lastSeen: r.last_seen,
     firstTxHash: r.first_tx_hash,
+    daysActive: Number(r.days_active),
+  }));
+}
+
+export interface UserAction {
+  at: Date;
+  account: string;
+  action: string;
+  assets: bigint;
+  shares: bigint;
+  txHash: string;
+  ledger: number;
+}
+
+/**
+ * Every deposit and withdrawal, one row each, oldest first.
+ *
+ * Unlike {@link depositors} this does not group, because the point of the exported record is that a
+ * reviewer can check any single line against the ledger rather than trusting a total we computed.
+ */
+export async function userActions(db: Db): Promise<UserAction[]> {
+  const { rows } = await db.query<{
+    at: Date;
+    account: string;
+    action: string;
+    assets: string;
+    shares: string;
+    tx_hash: string;
+    ledger: string;
+  }>(
+    `SELECT a.ledger_closed_at AS at, a.account, a.action, a.assets, a.shares, a.tx_hash,
+            e.ledger
+       FROM user_actions a
+       JOIN events e ON e.id = a.event_id
+      ORDER BY a.ledger_closed_at ASC, e.ledger ASC`,
+  );
+
+  return rows.map((r) => ({
+    at: r.at,
+    account: r.account,
+    action: r.action,
+    assets: BigInt(r.assets),
+    shares: BigInt(r.shares),
+    txHash: r.tx_hash,
+    ledger: Number(r.ledger),
+  }));
+}
+
+export interface Harvest {
+  at: Date;
+  gross: bigint;
+  fee: bigint;
+  net: bigint;
+  txHash: string;
+}
+
+/** Every harvest, one row each — the realized-yield record behind the APY figure. */
+export async function harvestRows(db: Db): Promise<Harvest[]> {
+  const { rows } = await db.query<{
+    at: Date;
+    gross: string;
+    fee: string;
+    net: string;
+    tx_hash: string;
+  }>(
+    `SELECT h.ledger_closed_at AS at, h.gross, h.fee, h.net, e.tx_hash
+       FROM harvests h
+       JOIN events e ON e.id = h.event_id
+      ORDER BY h.ledger_closed_at ASC`,
+  );
+
+  return rows.map((r) => ({
+    at: r.at,
+    gross: BigInt(r.gross),
+    fee: BigInt(r.fee),
+    net: BigInt(r.net),
+    txHash: r.tx_hash,
   }));
 }
 

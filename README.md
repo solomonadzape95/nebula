@@ -11,6 +11,13 @@ Soroban protocols — all while earning.
 > hosted Postgres. Unaudited — testnet only, and see [Security](#security) for what would have to
 > change before it held real money.
 
+| | |
+|---|---|
+| **Live app** | _paste the deployed URL here_ |
+| **Watch it work, no wallet needed** | The landing page reads live TVL, share price and the price history straight off testnet — connecting is only needed to deposit |
+| **Try it yourself** | Fund a testnet wallet at [friendbot](https://friendbot.stellar.org), connect, deposit XLM, watch the share price rise on the next harvest, redeem |
+| **On-chain record** | [`evidence/`](evidence/) — every depositor and transaction as CSV, each row with its own explorer link |
+
 ---
 
 ## The problem
@@ -31,6 +38,21 @@ Protocol 12 in October 2019.
 
 Yield here comes from real DeFi venues, and the vocabulary reflects that — *strategies*, not
 validators. See [`NEBULA.md`](NEBULA.md) §0 for the full reasoning.
+
+### Why Stellar
+
+Not incidental to the design — three properties of the network are load-bearing here:
+
+- **Sub-cent, deterministic fees make harvesting viable.** A vault's yield is the gross return minus
+  the cost of collecting it. The harvests below realized amounts in the hundreds of stroops; on a
+  chain where a keeper transaction costs a dollar, every one of them would have been a net loss, and
+  the whole compounding loop would only work at a size Nebula does not have yet.
+- **nXLM is liquid the moment it exists.** SEP-41 tokens trade on SDEX and route through path
+  payments without a pool being bootstrapped first, so "keep your liquidity" is a property of the
+  network rather than a promise about a future listing.
+- **XLM is the largest pool of idle capital on the network**, and unlike a proof-of-stake chain
+  Stellar offers its holders nothing for holding it — no staking, no block rewards, no inflation
+  since Protocol 12. The gap this fills exists specifically because of how consensus works here.
 
 ---
 
@@ -299,6 +321,46 @@ and Blend `supply` events all fired in one transaction with no `authorize_as_cur
 
 ---
 
+## Traction
+
+*Exported from the indexer on 2026-07-29. Regenerate with `cd indexer && npm run export`.*
+
+| | |
+|---|---|
+| Depositing addresses | 11 |
+| Deposits / withdrawals | 12 / 5 |
+| Total deposited | 4,692 XLM |
+| TVL | 4,302.05 XLM |
+| Harvests | 6 |
+| Gross yield realized | 0.0736505 XLM |
+| Share price | 1.0001611 XLM per nXLM (from 1.0000000) |
+| Realized APY | 9.84% over a 15-hour window |
+| Contract tests | 64 passing |
+
+The full record is in [`evidence/`](evidence/) as CSV — one file per wallet, one per transaction, one
+per harvest — and **every activity row carries its own transaction hash and Stellar Expert link.**
+Nothing there is typed in by hand; it is a rendering of decoded Soroban events, and any single row
+can be checked against a ledger this project does not control.
+
+**Two things that record does not say, said here instead.**
+
+All 11 addresses are self-generated — funded minutes apart from the same faucet while the deposit
+path was being tested. `evidence/depositors.csv` reports `days_active` per address and every one of
+them reads `1`, which is what a scripted batch looks like; the summary carries the same figure as
+`depositors_active_on_more_than_one_day: 0`. It is left visible rather than filtered out. So the
+number above proves the plumbing — indexing, accounting, the harvest loop, the invariant holding
+across 17 real transactions — and it does not yet prove a user base.
+
+The deployed contracts also predate the security pass, so the vault currently on testnet is missing
+`mark_to_market` and the other fixes described above. A redeploy is owed before anyone is invited in,
+and it resets this table to zero — which is a reason to do it now rather than after recruiting.
+
+Identity is the half no ledger can carry. [`docs/USER_SURVEY.md`](docs/USER_SURVEY.md) is the other
+half: it collects a wallet address alongside a person, so each response joins to a row in
+`depositors.csv` and a claim that does not match the chain is visible on sight.
+
+---
+
 ## Testing
 
 64 tests covering the accounting, the access control, and the attacks:
@@ -379,6 +441,8 @@ it is ready for real money.
 |---|---|
 | [`NEBULA.md`](NEBULA.md) | Source of truth — mechanism design, yield sources, decisions, risks |
 | [`docs/SUCCESS_METRICS.md`](docs/SUCCESS_METRICS.md) | Level 4 requirement tracker and build plan |
+| [`docs/USER_SURVEY.md`](docs/USER_SURVEY.md) | The tester survey — every field, and why each one is there |
+| [`evidence/README.md`](evidence/README.md) | The exported on-chain record: what is in it, how to check it, what it cannot show |
 | [`docs/FRONTEND_PLAN.md`](docs/FRONTEND_PLAN.md) | Page inventory and the landing-page section breakdown |
 | [`web/README.md`](web/README.md) | The interface — stack, design system, auth, environment |
 | [`indexer/README.md`](indexer/README.md) | Event indexer — setup, commands, and the two RPC gotchas |
@@ -393,6 +457,7 @@ cd indexer && npm install && cp .env.example .env
 npm run migrate && npm run sync
 npm run stats        # TVL, share price, depositor count, realized APY
 npm run depositors   # every depositing address, with tx hashes
+npm run export       # the whole record to evidence/*.csv
 ```
 
 It runs every 10 minutes from GitHub Actions, which needs `DATABASE_URL` set as a repository secret.

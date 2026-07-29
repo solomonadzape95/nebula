@@ -70,5 +70,8 @@ export function loadConfig(): Config {
 
 export const MIGRATIONS_DIR = resolve(here, "..", "migrations");
 
+/** Repository root, so the CSV export lands somewhere predictable regardless of the working directory. */
+export const REPO_ROOT = repoRoot;
+
 /** Stroops in one whole unit. XLM and nXLM both use 7 decimals. */
 export const STROOPS = 10_000_000n;

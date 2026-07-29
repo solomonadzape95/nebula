@@ -11,6 +11,7 @@
     "watch": "tsx src/main.ts watch",
     "stats": "tsx src/main.ts stats",
     "depositors": "tsx src/main.ts depositors",
+    "export": "tsx src/main.ts export",
     "typecheck": "tsc --noEmit",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"

@@ -1,5 +1,8 @@
-import { loadConfig } from "./config.js";
+import { resolve } from "node:path";
+
+import { loadConfig, REPO_ROOT } from "./config.js";
 import { connect, migrate, type Db } from "./db.js";
+import { exportCsv } from "./export.js";
 import { depositors, fmt, realizedApy, stats, strategyFlows } from "./queries.js";
 import { sync } from "./sync.js";
 
@@ -11,6 +14,7 @@ const USAGE = `nebula-indexer <command>
   stats        print vault totals, including the depositor count
   depositors   print every address that has deposited, with transaction hashes
   flows        print capital allocated to and unwound from each strategy
+  export [dir] write the whole record to CSV  (default: evidence/)
 `;
 
 function sleep(seconds: number): Promise<void> {
@@ -150,6 +154,22 @@ async function main(): Promise<void> {
       case "flows":
         await printFlows(db);
         break;
+
+      case "export": {
+        // Argument is a directory rather than a file: the record is six related tables and
+        // flattening them into one sheet would either lose the per-transaction detail or repeat
+        // every wallet on every row.
+        const target = process.argv[3]
+          ? resolve(process.cwd(), process.argv[3])
+          : resolve(REPO_ROOT, "evidence");
+        const result = await exportCsv(db, config, target);
+        console.log(`exported to ${result.directory}`);
+        const width = Math.max(...result.files.map((f) => f.name.length));
+        for (const file of result.files) {
+          console.log(`  ${file.name.padEnd(width)}  ${file.rows} row(s)`);
+        }
+        break;
+      }
 
       default:
         console.error(`unknown command "${command}"\n`);

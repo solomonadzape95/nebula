@@ -37,7 +37,14 @@ write — the indexer, the frontend, and the contracts can never disagree about 
 | `npm run watch` | Ingest continuously |
 | `npm run stats` | TVL, share price, depositor count, yield, realized APY |
 | `npm run depositors` | Every depositing address with tx hashes — the proof-of-users evidence |
+| `npm run export [dir]` | The whole record as CSV, into `../evidence/` by default |
 | `npx tsx src/main.ts flows` | Capital allocated to and unwound from each strategy |
+
+`export` writes six files rather than one sheet, because the record is six related tables and
+flattening them would either lose the per-transaction detail or repeat every wallet on every row.
+Files are overwritten in place and `summary.csv` stamps `exported_at_utc`, so what is on disk is
+always one run's worth of a consistent snapshot. See [`../evidence/README.md`](../evidence/README.md)
+for what each file contains and what it can and cannot prove.
 
 ## Deployment
 

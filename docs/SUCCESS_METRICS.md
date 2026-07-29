@@ -75,8 +75,8 @@ plus a suggested fix. Reviewers notice immediately.
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
 | 2.1 | Minimum 10 real users onboarded | ≥10 **distinct wallet addresses** that deposited. Aim for **20+** — some will be rejected as obviously self-generated. | ⬜ | 11 depositors indexed, **all self-generated** — funded minutes apart from the same faucet. Counts as plumbing proven, not as the requirement met. Real total: 0. |
-| 2.2 | Proof of wallet interactions | A table of address → tx hash → Stellar Expert link → action → timestamp. Plus a dashboard screenshot showing the count. | 🟡 | The mechanism is built and populated: `/asdfg/admin/users` lists every depositor with amount, first tx hash and a Stellar Expert link, read from the chain by the indexer. Waiting on real addresses to put in it. |
-| 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | 🟡 | In-app widget shipped — floating button, 1–5 rating, free text, stored in Postgres and surfaced at `/asdfg/admin/feedback` with an "actioned" column. **0 responses so far.** Whether the reviewer deposited is read from their on-chain history rather than self-reported. |
+| 2.2 | Proof of wallet interactions | A table of address → tx hash → Stellar Expert link → action → timestamp. Plus a dashboard screenshot showing the count. Exportable as CSV. | 🟡 | Built, populated and exportable: `/asdfg/admin/users` lists every depositor with amount, first tx hash and a Stellar Expert link, and `npm run export` writes the same record to [`../evidence/`](../evidence/) as CSV with a per-row explorer URL. Waiting on real addresses to put in it. |
+| 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | 🟡 | In-app widget shipped — floating button, 1–5 rating, free text, stored in Postgres and surfaced at `/asdfg/admin/feedback` with an "actioned" column. Whether the reviewer deposited is read from their on-chain history rather than self-reported. The structured form is specced field by field in [`USER_SURVEY.md`](USER_SURVEY.md) and **not yet built or sent — 0 responses.** |
 
 ### Getting 10+ real users (the requirement most submissions fail)
 
@@ -100,25 +100,25 @@ near zero — nobody risks money — so lean on that hard.
 **Log the proof as it happens** — build a `/admin/users` page backed by the indexer that lists
 every depositor address, tx hash, amount, and timestamp. Screenshot it at submission time.
 
-### Evidence table template
+### Evidence table
 
-| # | Wallet address | Action | Amount | Tx hash | Stellar Expert | Date |
-|---|---|---|---|---|---|---|
-| 1 | `G...` | Deposit | 100 XLM | `abc...` | [link](#) | |
-| … | | | | | | |
+Built and generated, not a template: `cd indexer && npm run export` writes
+[`../evidence/`](../evidence/) — a row per wallet, a row per transaction, a row per harvest, each
+with its own tx hash and Stellar Expert URL. Attach the CSVs and screenshot `/asdfg/admin/users`.
 
-### Feedback form (7 questions, ~90 seconds)
+`depositors.csv` also carries `days_active`, which is the column a reviewer will read hardest: the
+current 11 addresses all read `1`, because they were scripted in one afternoon. It is reported rather
+than filtered, on the grounds that a file caught hiding one thing is not believed about anything.
 
-1. Did you successfully deposit XLM? (Yes / No / Got stuck — where?)
-2. How clear was it what nXLM is? (1–5)
-3. How long did your first deposit take?
-4. What confused you most?
-5. Would you use this on mainnet with real XLM? (Yes / No / Maybe — why?)
-6. What's the one thing you'd add?
-7. Anything broken? (free text)
+### Feedback form
 
-Use Tally or Google Forms. Add a persistent in-app "Feedback" button too — the requirement says
-collection is *mandatory*, and an in-app widget is visible proof in screenshots.
+Full field spec, with the reasoning per field, in [`USER_SURVEY.md`](USER_SURVEY.md). Fifteen fields,
+under two minutes, and **field 1 is the wallet address** — which is what lets every response be
+joined against `evidence/depositors.csv` and a claimed deposit that never happened be spotted.
+
+The in-app widget is already shipped and is the other half: it catches people while they are annoyed,
+where a form catches only those who come back. The requirement says collection is *mandatory*, and a
+persistent in-app button is visible proof in a screenshot.
 
 ---
 
