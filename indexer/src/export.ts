@@ -79,17 +79,19 @@ export async function exportCsv(
   config: Config,
   directory: string,
 ): Promise<ExportResult> {
+  const vault = config.deployment.vault;
+
   const explorer = (hash: string) =>
     `https://stellar.expert/explorer/${config.network}/tx/${hash}`;
 
   const [summary, wallets, actions, harvests, series, flows, apy] = await Promise.all([
-    stats(db),
-    depositors(db),
-    userActions(db),
-    harvestRows(db),
-    sharePriceSeries(db, 10_000),
-    strategyFlows(db),
-    realizedApy(db),
+    stats(db, vault),
+    depositors(db, vault),
+    userActions(db, vault),
+    harvestRows(db, vault),
+    sharePriceSeries(db, vault, 10_000),
+    strategyFlows(db, vault),
+    realizedApy(db, vault),
   ]);
 
   // Depositors who came back on a later day. The headline count answers "how many wallets"; this

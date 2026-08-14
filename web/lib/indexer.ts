@@ -1,6 +1,26 @@
 import { cache } from "react";
 
+import { VAULT_ID } from "@/lib/contracts";
 import { query } from "@/lib/db";
+
+/**
+ * Every read here is scoped to one vault.
+ *
+ * The indexer's tables outlive any single deployment: the contracts were redeployed on 2026-08-14
+ * for the security pass, and the retired vault's history is deliberately kept rather than deleted —
+ * it happened, and a record that gets edited when it becomes inconvenient is not a record.
+ *
+ * But keeping it means the tables now hold two vaults, and an unscoped `SUM` silently adds them
+ * together. That is worse than either number alone: it produced a stats page showing a share price
+ * from the live contract beside yield totals from a dead one, which is not a figure that describes
+ * anything at all.
+ *
+ * Every derived table foreign-keys to `events`, and `events` carries `contract_id`, so the join
+ * below is the whole fix — no schema change, and nothing thrown away.
+ */
+const VAULT_SCOPE = "JOIN events e ON e.id = %s.event_id AND e.contract_id = $%d";
+const scope = (alias: string, param: number) =>
+  VAULT_SCOPE.replace("%s", alias).replace("%d", String(param));
 
 
 /* ────────────────────────────────────────────────────────────────── stats */
@@ -28,22 +48,26 @@ export const getIndexerStats = cache(async (): Promise<IndexerStats | null> => {
     first_at: Date | null;
     last_at: Date | null;
   }>(
-    `SELECT COUNT(DISTINCT account) FILTER (WHERE action = 'deposit') AS depositors,
-            COUNT(*) FILTER (WHERE action = 'deposit')                AS deposits,
-            COUNT(*) FILTER (WHERE action = 'withdraw')               AS withdrawals,
-            COALESCE(SUM(assets) FILTER (WHERE action = 'deposit'), 0)  AS deposited,
-            COALESCE(SUM(assets) FILTER (WHERE action = 'withdraw'), 0) AS withdrawn,
-            MIN(ledger_closed_at) AS first_at,
-            MAX(ledger_closed_at) AS last_at
-       FROM user_actions`,
+    `SELECT COUNT(DISTINCT ua.account) FILTER (WHERE ua.action = 'deposit') AS depositors,
+            COUNT(*) FILTER (WHERE ua.action = 'deposit')                   AS deposits,
+            COUNT(*) FILTER (WHERE ua.action = 'withdraw')                  AS withdrawals,
+            COALESCE(SUM(ua.assets) FILTER (WHERE ua.action = 'deposit'), 0)  AS deposited,
+            COALESCE(SUM(ua.assets) FILTER (WHERE ua.action = 'withdraw'), 0) AS withdrawn,
+            MIN(ua.ledger_closed_at) AS first_at,
+            MAX(ua.ledger_closed_at) AS last_at
+       FROM user_actions ua
+       ${scope("ua", 1)}`,
+    [VAULT_ID],
   );
   if (!users) return null;
 
   const yields = await query<{ count: string; gross: string; fee: string }>(
     `SELECT COUNT(*) AS count,
-            COALESCE(SUM(gross), 0) AS gross,
-            COALESCE(SUM(fee), 0)   AS fee
-       FROM harvests`,
+            COALESCE(SUM(h.gross), 0) AS gross,
+            COALESCE(SUM(h.fee), 0)   AS fee
+       FROM harvests h
+       ${scope("h", 1)}`,
+    [VAULT_ID],
   );
 
   const u = users[0];
@@ -83,16 +107,18 @@ export const getDepositors = cache(async (): Promise<Depositor[]> => {
     first_seen: Date;
     first_tx_hash: string;
   }>(
-    `SELECT account,
-            COUNT(*) FILTER (WHERE action = 'deposit')  AS deposits,
-            COUNT(*) FILTER (WHERE action = 'withdraw') AS withdrawals,
-            COALESCE(SUM(assets) FILTER (WHERE action = 'deposit'), 0) AS total_deposited,
-            MIN(ledger_closed_at) AS first_seen,
-            (ARRAY_AGG(tx_hash ORDER BY ledger_closed_at ASC))[1] AS first_tx_hash
-       FROM user_actions
-      GROUP BY account
-     HAVING COUNT(*) FILTER (WHERE action = 'deposit') > 0
-      ORDER BY MIN(ledger_closed_at) ASC`,
+    `SELECT ua.account,
+            COUNT(*) FILTER (WHERE ua.action = 'deposit')  AS deposits,
+            COUNT(*) FILTER (WHERE ua.action = 'withdraw') AS withdrawals,
+            COALESCE(SUM(ua.assets) FILTER (WHERE ua.action = 'deposit'), 0) AS total_deposited,
+            MIN(ua.ledger_closed_at) AS first_seen,
+            (ARRAY_AGG(ua.tx_hash ORDER BY ua.ledger_closed_at ASC))[1] AS first_tx_hash
+       FROM user_actions ua
+       ${scope("ua", 1)}
+      GROUP BY ua.account
+     HAVING COUNT(*) FILTER (WHERE ua.action = 'deposit') > 0
+      ORDER BY MIN(ua.ledger_closed_at) ASC`,
+    [VAULT_ID],
   );
 
   return (rows ?? []).map((r) => ({
@@ -137,14 +163,15 @@ export const getActivity = cache(async (limit = 50): Promise<ActivityEvent[]> =>
             ua.account       AS account
        FROM user_actions ua
        JOIN vault_samples vs ON vs.event_id = ua.event_id
+       ${scope("ua", 2)}
      UNION ALL
      SELECT 'harvest', h.net, NULL, vs.share_price, e.tx_hash, h.ledger_closed_at, NULL
        FROM harvests h
-       JOIN events e        ON e.id = h.event_id
        JOIN vault_samples vs ON vs.event_id = h.event_id
+       ${scope("h", 2)}
       ORDER BY at DESC
       LIMIT $1`,
-    [limit],
+    [limit, VAULT_ID],
   );
 
   return (rows ?? []).map((r) => ({
@@ -168,11 +195,12 @@ export interface PricePoint {
 
 export const getPriceSeries = cache(async (limit = 200): Promise<PricePoint[]> => {
   const rows = await query<{ at: Date; share_price: string; total_assets: string }>(
-    `SELECT ledger_closed_at AS at, share_price, total_assets
-       FROM vault_samples
-      ORDER BY ledger_closed_at ASC, ledger ASC
+    `SELECT vs.ledger_closed_at AS at, vs.share_price, vs.total_assets
+       FROM vault_samples vs
+       ${scope("vs", 2)}
+      ORDER BY vs.ledger_closed_at ASC, vs.ledger ASC
       LIMIT $1`,
-    [limit],
+    [limit, VAULT_ID],
   );
 
   return (rows ?? []).map((r) => ({
@@ -201,11 +229,14 @@ const MIN_WINDOW_HOURS = 6;
  */
 export const getApy = cache(async (): Promise<Apy | null> => {
   const rows = await query<{ at: Date; share_price: string }>(
-    `(SELECT ledger_closed_at AS at, share_price FROM vault_samples
-       ORDER BY ledger_closed_at ASC LIMIT 1)
+    `(SELECT vs.ledger_closed_at AS at, vs.share_price FROM vault_samples vs
+       ${scope("vs", 1)}
+       ORDER BY vs.ledger_closed_at ASC LIMIT 1)
      UNION ALL
-     (SELECT ledger_closed_at AS at, share_price FROM vault_samples
-       ORDER BY ledger_closed_at DESC LIMIT 1)`,
+     (SELECT vs.ledger_closed_at AS at, vs.share_price FROM vault_samples vs
+       ${scope("vs", 1)}
+       ORDER BY vs.ledger_closed_at DESC LIMIT 1)`,
+    [VAULT_ID],
   );
 
   const first = rows?.[0];

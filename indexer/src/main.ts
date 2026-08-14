@@ -40,9 +40,9 @@ async function runSync(db: Db, config: ReturnType<typeof loadConfig>): Promise<v
   }
 }
 
-async function printStats(db: Db): Promise<void> {
-  const s = await stats(db);
-  const apy = await realizedApy(db);
+async function printStats(db: Db, vault: string): Promise<void> {
+  const s = await stats(db, vault);
+  const apy = await realizedApy(db, vault);
 
   const rows: [string, string][] = [
     ["TVL", `${fmt(s.totalAssets)} XLM`],
@@ -70,8 +70,8 @@ async function printStats(db: Db): Promise<void> {
   }
 }
 
-async function printDepositors(db: Db, network: string): Promise<void> {
-  const rows = await depositors(db);
+async function printDepositors(db: Db, network: string, vault: string): Promise<void> {
+  const rows = await depositors(db, vault);
   if (rows.length === 0) {
     console.log("  no deposits indexed yet");
     return;
@@ -89,8 +89,8 @@ async function printDepositors(db: Db, network: string): Promise<void> {
   });
 }
 
-async function printFlows(db: Db): Promise<void> {
-  const rows = await strategyFlows(db);
+async function printFlows(db: Db, vault: string): Promise<void> {
+  const rows = await strategyFlows(db, vault);
   if (rows.length === 0) {
     console.log("  no strategy flows indexed yet");
     return;
@@ -144,15 +144,15 @@ async function main(): Promise<void> {
         }
 
       case "stats":
-        await printStats(db);
+        await printStats(db, config.deployment.vault);
         break;
 
       case "depositors":
-        await printDepositors(db, config.network);
+        await printDepositors(db, config.network, config.deployment.vault);
         break;
 
       case "flows":
-        await printFlows(db);
+        await printFlows(db, config.deployment.vault);
         break;
 
       case "export": {

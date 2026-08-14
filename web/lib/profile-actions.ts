@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { VAULT_ID } from "@/lib/contracts";
 import { query } from "@/lib/db";
 import type { Profile } from "@/lib/profile";
 import { currentAddress } from "@/lib/session";
@@ -118,9 +119,14 @@ export async function submitReview(input: {
   // Read whether they deposited off the chain's own record instead of asking. It used to arrive as
   // a checkbox in the payload, which meant the admin panel's "completed a deposit" count was
   // whatever the submitter typed. It is also one less question to answer in a feedback form.
+  // Scoped to the live vault, like every other read: a deposit into the contract retired on
+  // 2026-08-14 is history, not a claim about the thing this person is reviewing.
   const deposits = await query<{ n: string }>(
-    "SELECT COUNT(*) AS n FROM user_actions WHERE account = $1 AND action = 'deposit'",
-    [address],
+    `SELECT COUNT(*) AS n
+       FROM user_actions ua
+       JOIN events e ON e.id = ua.event_id AND e.contract_id = $2
+      WHERE ua.account = $1 AND ua.action = 'deposit'`,
+    [address, VAULT_ID],
   );
   const deposited = Number(deposits?.[0]?.n ?? 0) > 0;
 
