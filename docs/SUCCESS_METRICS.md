@@ -74,7 +74,7 @@ plus a suggested fix. Reviewers notice immediately.
 |---|---|---|---|---|
 | 2.1 | Minimum 10 real users onboarded | ≥10 **distinct wallet addresses** that deposited. Aim for **20+** — some will be rejected as obviously self-generated. | ⬜ | **0.** The retired vault's 11 depositors were all self-generated and are not carried forward; the new vault has one address, the project's own test account. Every depositor from here is a genuine one, which is the point of having redeployed first. |
 | 2.2 | Proof of wallet interactions | A table of address → tx hash → Stellar Expert link → action → timestamp. Plus a dashboard screenshot showing the count. Exportable as CSV. | 🟡 | Built, populated and exportable: `/asdfg/admin/users` lists every depositor with amount, first tx hash and a Stellar Expert link, and `npm run export` writes the same record to [`../evidence/`](../evidence/) as CSV with a per-row explorer URL. Waiting on real addresses to put in it. |
-| 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | 🟡 | In-app widget shipped — floating button, 1–5 rating, free text, stored in Postgres and surfaced at `/asdfg/admin/feedback` with an "actioned" column. Whether the reviewer deposited is read from their on-chain history rather than self-reported. The structured form is specced field by field in [`USER_SURVEY.md`](USER_SURVEY.md) and **not yet built or sent — 0 responses.** |
+| 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | 🟡 | **Both halves built.** In-app widget: floating button, 1–5 rating, free text, `actioned` column. Structured survey: all 15 fields from [`USER_SURVEY.md`](USER_SURVEY.md), live at `/feedback`, with the wallet address taken from a signed session rather than typed — so every response joins to the on-chain deposit record and the admin view reads "corroborated" off the chain. **0 responses; nothing has been sent to anyone.** |
 
 ### Getting 10+ real users (the requirement most submissions fail)
 
@@ -110,7 +110,8 @@ filtered, on the grounds that a file caught hiding one thing is not believed abo
 
 ### Feedback form
 
-Full field spec, with the reasoning per field, in [`USER_SURVEY.md`](USER_SURVEY.md). Fifteen fields,
+**Built and live at `/feedback`.** Full field spec, with the reasoning per field, in
+[`USER_SURVEY.md`](USER_SURVEY.md). Fifteen fields,
 under two minutes, and **field 1 is the wallet address** — which is what lets every response be
 joined against `evidence/depositors.csv` and a claimed deposit that never happened be spotted.
 
@@ -323,9 +324,9 @@ clause: *first 3 external users.*
 feedback responses. Everything built is only worth what someone else's hands make of it. The ordered
 path from here, and note that the first four items are all the same item:
 
-1. **Build the survey** from [`USER_SURVEY.md`](USER_SURVEY.md) in Google Forms. One afternoon.
+1. ~~Build the survey~~ — done, at `/feedback`.
 2. **Recruit.** Stellar Discord, r/Stellar, the cohort, Telegram. Target 20 so 10 survive scrutiny.
-3. **Send the form** to everyone who deposits, while the wallet is still open.
+3. **Send people to `/feedback`** right after they deposit, while the wallet is still open.
 4. **Act on what comes back**, and record what changed. *"n responses, m corroborated on-chain, k
    changes shipped as a result"* is worth more to a reviewer than any average rating.
 5. Screenshots and the demo video last, once the funnel has real numbers in it.
