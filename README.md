@@ -330,6 +330,30 @@ and Blend `supply` events all fired in one transaction with no `authorize_as_cur
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="The Nebula dashboard: XLM balance, nXLM position, current share price and vault TVL" width="900">
+</p>
+
+| | |
+|---|---|
+| <img src="docs/screenshots/deposit.png" alt="The deposit card with an amount entered and the estimated nXLM shown" width="440"> | <img src="docs/screenshots/chart.png" alt="Share price history, rising across the window" width="440"> |
+| **Deposit** — estimated nXLM before you sign | **Share price** — the whole product, in one line |
+
+<p align="center">
+  <img src="docs/screenshots/mobile.png" alt="Nebula at 375px: the dashboard and the deposit flow" width="640">
+</p>
+<p align="center"><sub>375px. Tab strips collapse behind a menu below <code>md</code>, and the shader
+heroes render as a still on touch devices — they are fragment-bound, and animating them cost the
+frame budget on a phone.</sub></p>
+
+More, including the admin and monitoring views, in
+[`docs/screenshots/`](docs/screenshots/) — which also lists what each one has to show and why the
+analytics shot is deliberately taken last.
+
+---
+
 ## Traction
 
 **The contracts were redeployed on 2026-08-14 to pick up the security pass, and the event history
@@ -345,13 +369,32 @@ end-to-end smoke test and nothing else yet.
 | Contract tests | 64 passing |
 | Full cycle verified on-chain | Yes — deposit, allocate, harvest, redeem, see above |
 
-The previous deployment indexed 11 depositors and 17 transactions across 4,692 XLM. Every one of
-those addresses was self-generated — funded minutes apart from the same faucet while the deposit
-path was being tested — and `days_active` read `1` for all of them, which is what a scripted batch
-looks like. That record proved the plumbing: indexing, accounting, the harvest loop, and the
-invariant holding across real transactions. It never proved a user base, and it is not carried
-forward here, because a retired vault's numbers presented as current traction would be exactly the
-kind of figure this project refuses to publish.
+### The previous deployment's record is kept, in full
+
+**→ [`evidence/retired-vault-2026-07/`](evidence/retired-vault-2026-07/) — 11 depositors, 17
+transactions, 4,692 XLM, every row with its own transaction hash and Stellar Expert link.**
+
+It is archived rather than deleted, and archived rather than merged, and both halves of that are
+deliberate.
+
+**Kept, because it happened.** Those transactions are on a public ledger and cannot be un-made by
+becoming inconvenient. They also proved the parts of this system that are hardest to prove any
+other way — the event decoding, the accounting, the harvest loop, and the invariant
+`total_assets == idle + Σ deployed` holding across 17 real transactions. None of that is
+invalidated by a redeploy.
+
+**Separate, because those rows belong to a different contract.** `summary.csv` in the live export
+names the vault it came from. Folding a retired vault's depositors into files that name the live
+contract would make every explorer link in them resolve to a contract the file does not claim —
+checkable by a reviewer in about ten seconds. So the two are kept apart, and every indexer query is
+scoped by `events.contract_id` so they can never be silently summed. That scoping is not
+housekeeping: before it existed, the stats page showed the live vault's share price beside
+`0.0736505 XLM` of yield the live vault never earned.
+
+**And it was never evidence of users.** All 11 addresses were self-generated, funded minutes apart
+from the same faucet while the deposit path was being tested, and `days_active` reads `1` for every
+one — exactly what a scripted batch looks like. That is stated in the archive's own README rather
+than left for someone to work out.
 
 The live record is in [`evidence/`](evidence/) as CSV — one file per wallet, one per transaction,
 one per harvest — and **every activity row carries its own transaction hash and Stellar Expert
