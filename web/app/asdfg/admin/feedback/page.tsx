@@ -7,6 +7,7 @@ import { DitherAvatar } from "@/components/dither-kit/avatar";
 import { explorerAccount, shortAddress } from "@/lib/contracts";
 import { shortDate } from "@/lib/format";
 import { getReviews, type Review } from "@/lib/profile";
+import { getSurveyResponses, type SurveyResponse } from "@/lib/survey";
 
 const TARGET = 8;
 
@@ -20,7 +21,7 @@ const TARGET = 8;
 export const revalidate = 30;
 
 export default async function AdminFeedbackPage() {
-  const reviews = await getReviews();
+  const [reviews, survey] = await Promise.all([getReviews(), getSurveyResponses()]);
 
   const total = reviews.length;
   const pct = Math.min(100, (total / TARGET) * 100);
@@ -70,7 +71,131 @@ export default async function AdminFeedbackPage() {
         </div>
       </div>
 
+      <SurveySection rows={survey} />
+
+      <h2 className="mt-20 text-2xl font-medium tracking-tight text-ink">In-app reviews</h2>
       {total === 0 ? <EmptyState /> : <Responses rows={reviews} />}
+    </div>
+  );
+}
+
+/**
+ * The structured survey, summarized the way it should be reported.
+ *
+ * The headline is deliberately **corroborated**, not the raw count. A response total is a claim
+ * about how many forms were filled in; the corroborated count is how many of those addresses
+ * actually deposited into the live vault, read from the chain rather than from the form. That is
+ * the number a reviewer should be given, because it is the one nobody here can inflate.
+ */
+function SurveySection({ rows }: { rows: SurveyResponse[] }) {
+  const total = rows.length;
+  const corroborated = rows.filter((r) => r.corroborated).length;
+  const stuck = rows.filter((r) => r.stuckWhere && r.stuckWhere !== "I didn't get stuck").length;
+  const avgClarity = total ? rows.reduce((sum, r) => sum + r.clarity, 0) / total : 0;
+  const wouldDeposit = rows.filter(
+    (r) => r.mainnetSize && r.mainnetSize !== "Nothing",
+  ).length;
+
+  return (
+    <>
+      <h2 className="mt-20 text-2xl font-medium tracking-tight text-ink">Survey responses</h2>
+      <p className="mt-2 max-w-2xl text-base text-ink-dim">
+        From <span className="font-mono text-ink">/feedback</span>. Every row is joined to the
+        on-chain deposit record automatically, so a claimed deposit that never happened shows up as
+        “Not corroborated”.
+      </p>
+
+      {total === 0 ? (
+        <div className="panel mt-8 px-7 py-14 text-center">
+          <p className="text-base text-ink-dim">
+            No survey responses yet. Send testers to{" "}
+            <span className="font-mono text-ink">/feedback</span> right after they deposit.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="panel mt-8 grid grid-cols-2 gap-6 p-7 sm:grid-cols-5 sm:p-9">
+            <Metric label="Responses" value={String(total)} />
+            <Metric label="Corroborated on-chain" value={`${corroborated} of ${total}`} />
+            <Metric label="Got stuck" value={`${stuck} of ${total}`} />
+            <Metric label="Avg. clarity" value={`${avgClarity.toFixed(1)} / 5`} />
+            <Metric label="Would deposit real XLM" value={`${wouldDeposit} of ${total}`} />
+          </div>
+
+          <div className="mt-6 space-y-px border border-edge bg-edge">
+            {rows.map((row) => (
+              <article key={row.id} className="bg-void p-7 sm:p-8">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <span>
+                    <a
+                      href={explorerAccount(row.address)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-sm text-ink transition-colors hover:text-signal"
+                    >
+                      {row.handle}
+                    </a>
+                    <span className="block font-mono text-xs text-ink-faint">
+                      {shortAddress(row.address, 6, 6)}
+                      {row.country ? ` · ${row.country}` : ""}
+                    </span>
+                  </span>
+
+                  <span className="flex flex-wrap items-center gap-3">
+                    <Tag
+                      label={row.corroborated ? "Corroborated" : "Not corroborated"}
+                      tone={row.corroborated ? "signal" : "default"}
+                    />
+                    <Tag label={`Clarity ${row.clarity}/5`} />
+                    <Tag label={row.wallet} />
+                    <span className="font-mono text-xs text-ink-faint">
+                      {shortDate(row.createdAt)}
+                    </span>
+                  </span>
+                </div>
+
+                <dl className="mt-6 space-y-5">
+                  <Answer q="Before real money" a={row.requirements} />
+                  <Answer q="Confusing, broken or missing" a={row.issues} />
+                </dl>
+
+                <div className="mt-6 flex flex-wrap gap-2 border-t border-edge pt-5">
+                  <Tag label={row.background} />
+                  <Tag label={row.usedYield} />
+                  {row.mainnetSize ? <Tag label={`Mainnet: ${row.mainnetSize}`} /> : null}
+                  {row.stuckWhere && row.stuckWhere !== "I didn't get stuck" ? (
+                    <Tag label={`Stuck: ${row.stuckWhere}`} />
+                  ) : null}
+                </div>
+
+                <p className="mt-4 font-mono text-xs text-ink-faint">
+                  {row.contact} · {row.consent}
+                </p>
+
+                {row.actioned ? (
+                  <div className="mt-6 border-l-2 border-signal bg-signal/[0.05] py-3 pl-5">
+                    <span className="label text-signal-dim">Changed as a result</span>
+                    <p className="mt-1.5 text-sm leading-relaxed text-ink-dim">{row.actioned}</p>
+                  </div>
+                ) : (
+                  <p className="mt-6 border-l-2 border-edge py-3 pl-5 text-sm text-ink-faint">
+                    Not yet acted on.
+                  </p>
+                )}
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function Answer({ q, a }: { q: string; a: string }) {
+  return (
+    <div>
+      <dt className="label">{q}</dt>
+      <dd className="mt-1.5 text-base leading-relaxed whitespace-pre-line text-ink-dim">{a}</dd>
     </div>
   );
 }

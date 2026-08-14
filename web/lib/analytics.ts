@@ -35,7 +35,9 @@ export type NebulaEvent =
   | "withdraw_confirmed"
   | "withdraw_failed"
   | "username_set"
-  | "review_submitted";
+  | "review_submitted"
+  | "survey_started"
+  | "survey_submitted";
 
 type Properties = Record<string, string | number | boolean | null | undefined>;
 
