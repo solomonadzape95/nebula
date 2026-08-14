@@ -7,13 +7,17 @@ more XLM over time. It trades on SDEX, moves through path payments, and works as
 Soroban protocols — all while earning.
 
 > **Status:** live on Stellar testnet, earning real interest from a Blend pool. Contracts, indexer
-> and web app are all built; the interface is deployed and the indexer syncs on a schedule into
-> hosted Postgres. Unaudited — testnet only, and see [Security](#security) for what would have to
-> change before it held real money.
+> and web app are all built; the interface is deployed at
+> [nebula.thesolenoid.space](https://nebula.thesolenoid.space) and the indexer syncs on a schedule
+> into hosted Postgres. The contracts below are the post-security-pass build, deployed 2026-08-14.
+> Unaudited — testnet only, and see [Security](#security) for what would have to change before it
+> held real money.
+
+**[▶ Live app](https://nebula.thesolenoid.space) · [Contracts on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDONRBWSSLXWLB7YN6SI4MDBIFTXBKBZTKOGRL537LP4RGAIXDLBHMQX) · [On-chain record](evidence/) · [Security](#security)**
 
 | | |
 |---|---|
-| **Live app** | _paste the deployed URL here_ |
+| **Live app** | [nebula.thesolenoid.space](https://nebula.thesolenoid.space) |
 | **Watch it work, no wallet needed** | The landing page reads live TVL, share price and the price history straight off testnet — connecting is only needed to deposit |
 | **Try it yourself** | Fund a testnet wallet at [friendbot](https://friendbot.stellar.org), connect, deposit XLM, watch the share price rise on the next harvest, redeem |
 | **On-chain record** | [`evidence/`](evidence/) — every depositor and transaction as CSV, each row with its own explorer link |
@@ -296,24 +300,29 @@ Stellar **testnet**. Machine-readable copy in [`deployments/testnet.json`](deplo
 
 | Contract | Address |
 |---|---|
-| Vault | [`CDGRL2EM…3VXTUPHO`](https://stellar.expert/explorer/testnet/contract/CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO) |
-| nXLM share token | [`CAVRFADY…DZ5JB3SN2`](https://stellar.expert/explorer/testnet/contract/CAVRFADYBNPLRL734VGRS6FW4LXRDEKRZZDQCSMB7VXCFZPDZ5JB3SN2) |
-| Blend strategy | [`CDSQOX3G…GL5DAYQAR`](https://stellar.expert/explorer/testnet/contract/CDSQOX3GQSE4HEM5IWKEMIZ56JHMTPFN3ZUN5PI4TH5WVFYGL5DAYQAR) |
+| Vault | [`CDONRBWS…IXDLBHMQX`](https://stellar.expert/explorer/testnet/contract/CDONRBWSSLXWLB7YN6SI4MDBIFTXBKBZTKOGRL537LP4RGAIXDLBHMQX) |
+| nXLM share token | [`CAEEI27X…K5NI464CT`](https://stellar.expert/explorer/testnet/contract/CAEEI27XLJHMJBI25PL36DJ7FEK6TMVCQ7TP2PRQ4EXFVOUK5NI464CT) |
+| Blend strategy | [`CATKCADB…N5DO2FI5DU`](https://stellar.expert/explorer/testnet/contract/CATKCADBXINDP45VLR27GZDNJSUPAZNNADCMT6XYBAH2AEN5DO2FI5DU) |
 | Blend pool (upstream) | [`CCEBVDYM…KHPQ44HGF`](https://stellar.expert/explorer/testnet/contract/CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF) |
 | Underlying — native XLM SAC | [`CDLZFC3S…VU2HHGCYSC`](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
 
 ### Verified live on testnet
 
-Every path exercised against the real Blend pool, not a stand-in:
+Every path exercised against the real Blend pool, not a stand-in. Reproduce with
+`./scripts/smoke-test.sh` — the figures below are one run of it against the contracts above:
 
 | Path | Result |
 |---|---|
-| Deposit | 100 XLM in → 999,999,000 nXLM minted, 1,000 dead shares locked in the vault |
-| Redeem from reserve | Served from idle without touching the strategy |
-| Allocate | 54 XLM supplied to Blend → 331,026,297 bTokens at `b_rate` 1.631284927567 |
-| Harvest | Real interest: gross 1,789 stroops, fee 178, net 1,611 → **share price 10000000 → 10000026** |
-| Redeem forcing unwind | Pulled 239,999,194 back out of Blend mid-redemption |
+| Deposit | 100 XLM in → 99.9999000 nXLM minted, 1,000 dead shares locked in the vault |
+| Allocate | 89.9999999 XLM supplied to Blend, 10 XLM held back as the redemption reserve |
+| Harvest | Real borrower interest: 0.0000607 XLM credited net of the 10% fee → **share price 1.0000000 → 1.0000006** |
+| Redeem forcing unwind | Full position returned 99.9999606 XLM, pulled back out of Blend mid-redemption |
 | Invariant | `total_assets == idle + Σ deployed` held after every operation |
+
+That last row is worth reading honestly: a round trip taken minutes apart comes back **0.0000394 XLM
+short**, because share rounding always resolves against the redeemer and a few minutes in the pool
+does not out-earn it. The vault is not a place to park money for an hour, and the smoke test prints
+the negative rather than hiding it.
 
 The allowance-based deposit path — the one thing local tests could not prove, because
 `mock_all_auths` makes every `require_auth` succeed — **works on-chain.** The transfer, `approve`,
@@ -323,41 +332,39 @@ and Blend `supply` events all fired in one transaction with no `authorize_as_cur
 
 ## Traction
 
-*Exported from the indexer on 2026-07-29. Regenerate with `cd indexer && npm run export`.*
+**The contracts were redeployed on 2026-08-14 to pick up the security pass, and the event history
+starts again from there.** The figures below are what the new vault has done since — which is one
+end-to-end smoke test and nothing else yet.
+
+*Exported from the indexer. Regenerate with `cd indexer && npm run export`.*
 
 | | |
 |---|---|
-| Depositing addresses | 11 |
-| Deposits / withdrawals | 12 / 5 |
-| Total deposited | 4,692 XLM |
-| TVL | 4,302.05 XLM |
-| Harvests | 6 |
-| Gross yield realized | 0.0736505 XLM |
-| Share price | 1.0001611 XLM per nXLM (from 1.0000000) |
-| Realized APY | 9.84% over a 15-hour window |
+| Depositing addresses | 1 — the project's own test account |
+| External users | **0** |
 | Contract tests | 64 passing |
+| Full cycle verified on-chain | Yes — deposit, allocate, harvest, redeem, see above |
 
-The full record is in [`evidence/`](evidence/) as CSV — one file per wallet, one per transaction, one
-per harvest — and **every activity row carries its own transaction hash and Stellar Expert link.**
-Nothing there is typed in by hand; it is a rendering of decoded Soroban events, and any single row
-can be checked against a ledger this project does not control.
+The previous deployment indexed 11 depositors and 17 transactions across 4,692 XLM. Every one of
+those addresses was self-generated — funded minutes apart from the same faucet while the deposit
+path was being tested — and `days_active` read `1` for all of them, which is what a scripted batch
+looks like. That record proved the plumbing: indexing, accounting, the harvest loop, and the
+invariant holding across real transactions. It never proved a user base, and it is not carried
+forward here, because a retired vault's numbers presented as current traction would be exactly the
+kind of figure this project refuses to publish.
 
-**Two things that record does not say, said here instead.**
+The live record is in [`evidence/`](evidence/) as CSV — one file per wallet, one per transaction,
+one per harvest — and **every activity row carries its own transaction hash and Stellar Expert
+link.** Nothing there is typed in by hand; it is a rendering of decoded Soroban events, so any
+single row can be checked against a ledger this project does not control, and there is no code path
+that can add a row the chain did not produce.
 
-All 11 addresses are self-generated — funded minutes apart from the same faucet while the deposit
-path was being tested. `evidence/depositors.csv` reports `days_active` per address and every one of
-them reads `1`, which is what a scripted batch looks like; the summary carries the same figure as
-`depositors_active_on_more_than_one_day: 0`. It is left visible rather than filtered out. So the
-number above proves the plumbing — indexing, accounting, the harvest loop, the invariant holding
-across 17 real transactions — and it does not yet prove a user base.
-
-The deployed contracts also predate the security pass, so the vault currently on testnet is missing
-`mark_to_market` and the other fixes described above. A redeploy is owed before anyone is invited in,
-and it resets this table to zero — which is a reason to do it now rather than after recruiting.
-
-Identity is the half no ledger can carry. [`docs/USER_SURVEY.md`](docs/USER_SURVEY.md) is the other
-half: it collects a wallet address alongside a person, so each response joins to a row in
-`depositors.csv` and a claim that does not match the chain is visible on sight.
+Identity is the half no ledger can carry. An address is free to create and a funded testnet wallet
+costs nothing, so the export deliberately reports `days_active` rather than filtering on it — a
+batch driven from one script in one sitting is visible as such.
+[`docs/USER_SURVEY.md`](docs/USER_SURVEY.md) is the other half: it collects a wallet address
+alongside a person, so each response joins to a row in `depositors.csv` and a claim that does not
+match the chain is visible on sight.
 
 ---
 
@@ -389,6 +396,52 @@ semantics. That gap is closed by the live testnet run above, where the real pool
 ```bash
 cargo test --workspace
 ```
+
+---
+
+## Analytics & monitoring
+
+PostHog, self-proxied, covering both product analytics and error tracking.
+
+**One vendor, deliberately.** The obvious alternative is PostHog for funnels and Sentry for errors.
+PostHog captures `$exception` events with stack traces and issue grouping, and putting both on one
+timeline is worth more here than Sentry's deeper error tooling: the question this project actually
+needs answered is *"the deposit funnel leaks at signing — what threw?"*, and with two vendors that
+is a manual identity reconciliation across two dashboards. With one it is a click. A second SDK
+would also be a second script on a page whose users disproportionately run blockers.
+
+| Piece | Where |
+|---|---|
+| Browser events + pageviews | [`web/instrumentation-client.ts`](web/instrumentation-client.ts) |
+| Browser exceptions | same file — `capture_exceptions`, unhandled errors and rejections |
+| Server exceptions | [`web/instrumentation.ts`](web/instrumentation.ts) — Next's `onRequestError` |
+| Typed event names | [`web/lib/analytics.ts`](web/lib/analytics.ts) |
+| Funnel drop-off panel | `/asdfg/admin` — joins PostHog's funnel to on-chain depositors |
+
+**Requests go to `/ingest` on our own origin** and are rewritten to PostHog in
+[`web/next.config.ts`](web/next.config.ts). A direct call to a posthog.com host is blocked by uBlock
+Origin and Brave's shields, and this audience runs those far above the general web's rate — so the
+missing data would not be missing at random, it would be exactly the privacy-minded users, which is
+most of the point of measuring a crypto product.
+
+Event names are a compile-checked union, so a typo cannot silently split one funnel into two:
+
+```
+wallet_connect_started / wallet_connected / wallet_connect_failed   { wallet, reason }
+deposit_submitted / deposit_confirmed / deposit_failed              { size, phase, reason }
+withdraw_submitted / withdraw_confirmed / withdraw_failed           { size, phase, reason }
+username_set · review_submitted                                     { rating }
+```
+
+Two deliberate departures from what a default install would send. **No wallet address and no exact
+amount** — the [privacy page](https://nebula.thesolenoid.space/privacy) promises analytics is not
+tied to your address, and an exact figure plus a timestamp identifies one transaction on a public
+ledger, so amounts go as bands (`<10`, `10-100`, `100-1k`). **`deposit_failed` carries the phase it
+died in** — `simulating`, `signing`, `submitting`, `confirming`. Backing out at the wallet prompt
+and the contract rejecting you look identical in a funnel and need opposite responses.
+
+Session recording is off. On a page where people type amounts and approve wallet prompts it is a
+lot of exposure for a question the funnel already answers.
 
 ---
 

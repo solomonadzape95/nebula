@@ -175,7 +175,7 @@ and a person's name is not, and this form is what would create it. Ask before pu
    changes listed. A reviewer will trust that far more than an average rating.
 
 **Recruit before the form is perfect.** The fields above are one afternoon of work; ten people who
-have actually used the thing are not, and cannot be produced in the final week. The current
-`evidence/depositors.csv` shows 11 addresses with `days_active` of 1 across a single afternoon — the
-plumbing is proven and the requirement is not, and a reviewer reading that file will see the same
-thing.
+have actually used the thing are not, and cannot be produced in the final week. The contracts were
+redeployed on 2026-08-14 for the security pass, so `evidence/depositors.csv` starts from one test
+account and every real depositor from here is a genuine one. The plumbing is proven and the
+requirement is not — and a reviewer reading that file will see exactly that.
