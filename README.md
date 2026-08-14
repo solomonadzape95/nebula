@@ -13,7 +13,7 @@ Soroban protocols — all while earning.
 > Unaudited — testnet only, and see [Security](#security) for what would have to change before it
 > held real money.
 
-**[▶ Live app](https://nebula.thesolenoid.space) · [Contracts on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDONRBWSSLXWLB7YN6SI4MDBIFTXBKBZTKOGRL537LP4RGAIXDLBHMQX) · [On-chain record](evidence/) · [Security](#security)**
+**[▶ Live app](https://nebula.thesolenoid.space) · [Contracts on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDONRBWSSLXWLB7YN6SI4MDBIFTXBKBZTKOGRL537LP4RGAIXDLBHMQX) · [On-chain record](evidence/) · [Give feedback](https://forms.gle/H1zS9wVeurADwuvt7) · [Security](#security)**
 
 | | |
 |---|---|
@@ -21,6 +21,7 @@ Soroban protocols — all while earning.
 | **Watch it work, no wallet needed** | The landing page reads live TVL, share price and the price history straight off testnet — connecting is only needed to deposit |
 | **Try it yourself** | Fund a testnet wallet at [friendbot](https://friendbot.stellar.org), connect, deposit XLM, watch the share price rise on the next harvest, redeem |
 | **On-chain record** | [`evidence/`](evidence/) — every depositor and transaction as CSV, each row with its own explorer link |
+| **Used it? Tell us what broke** | [In the app](https://nebula.thesolenoid.space/feedback) if your wallet is connected, or [this short form](https://forms.gle/H1zS9wVeurADwuvt7) if it is not — including *especially* if you never got as far as depositing |
 
 ---
 
@@ -408,6 +409,21 @@ batch driven from one script in one sitting is visible as such.
 [`docs/USER_SURVEY.md`](docs/USER_SURVEY.md) is the other half: it collects a wallet address
 alongside a person, so each response joins to a row in `depositors.csv` and a claim that does not
 match the chain is visible on sight.
+
+It is collected two ways, and the difference is deliberate:
+
+- **[`/feedback`](https://nebula.thesolenoid.space/feedback)** — the same fifteen questions, in the
+  app. The address is taken from a wallet that signed a session challenge rather than typed, so
+  every response joins to the on-chain record automatically, cannot claim someone else's deposits,
+  and cannot be mistyped. The admin view reads *corroborated* off the chain rather than off the
+  form.
+- **[The Google Form](https://forms.gle/H1zS9wVeurADwuvt7)** — the same questions, worse data,
+  far better reach. It works in a Discord message and needs no wallet, which is the only way to
+  hear from the person who bounced at the wallet install or read the landing page and left. That
+  person is often the most useful respondent there is, and the in-app form structurally cannot
+  reach them.
+
+**Tried Nebula? [Tell us what to fix next →](https://forms.gle/H1zS9wVeurADwuvt7)**
 
 ---
 

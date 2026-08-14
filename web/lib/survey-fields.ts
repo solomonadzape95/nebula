@@ -11,6 +11,20 @@
  * executable.
  */
 
+/**
+ * The same survey as a Google Form, for people who never connect a wallet.
+ *
+ * `/feedback` is the better instrument — it takes the address from a signed session, so every
+ * response joins to the on-chain record and nothing is typed. But it can only reach someone who
+ * got as far as connecting, and the most useful respondent is often the one who did not: they
+ * bounced at the wallet install, or read the landing page and left. A link that works in a Discord
+ * message reaches them; an in-app form never can.
+ *
+ * So the two are not redundant. This one trades data quality for reach, and reach is the thing
+ * currently in short supply.
+ */
+export const SURVEY_FORM_URL = "https://forms.gle/H1zS9wVeurADwuvt7";
+
 export const BACKGROUND = [
   "I hold XLM",
   "I use DeFi on another chain",

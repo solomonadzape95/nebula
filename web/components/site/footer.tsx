@@ -19,7 +19,7 @@ const COLUMNS = [
       { href: "/how-it-works", label: "How it works" },
       { href: "/faq", label: "FAQ" },
       { href: "/#nxlm", label: "What is nXLM" },
-      { href: "/feedback", label: "Give feedback" },
+      { href: "/feedback", label: "Tell us what broke" },
     ],
   },
 ];

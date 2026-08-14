@@ -18,6 +18,7 @@ import {
   HOLDS_XLM,
   MAINNET_SIZE,
   STUCK,
+  SURVEY_FORM_URL,
   USED_YIELD,
   WALLETS,
 } from "@/lib/survey-fields";
@@ -252,6 +253,23 @@ export function SurveyForm({ alreadyResponded }: { alreadyResponded: boolean }) 
         >
           Connect wallet
         </Link>
+
+        {/* The escape hatch matters more than it looks. Someone who could not install a wallet, or
+            read the landing page and left, is the most useful respondent there is — and they are
+            precisely the person this page can never hear from. */}
+        <p className="mt-8 border-t border-edge pt-6 text-sm leading-relaxed text-ink-dim">
+          No wallet, or could not get one working?{" "}
+          <a
+            href={SURVEY_FORM_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-signal underline underline-offset-4 hover:no-underline"
+          >
+            Answer the same questions here instead
+          </a>
+          . If you got stuck before connecting, that is the single most useful thing you can tell
+          us — please do not skip it on the grounds that you did not get far.
+        </p>
       </div>
     );
   }

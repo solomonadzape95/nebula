@@ -1,8 +1,18 @@
 # User survey — field spec
 
 The structured half of requirement 2.3 in [`SUCCESS_METRICS.md`](SUCCESS_METRICS.md): **≥8 responses
-to a form, summarized with the actions taken.** Build it in Google Forms, Tally or Typeform — the
-tool does not matter, the fields do.
+to a form, summarized with the actions taken.**
+
+**Built, two ways.** This document is the spec both implement:
+
+| | Where | Trade |
+|---|---|---|
+| In-app | [`/feedback`](https://nebula.thesolenoid.space/feedback) | Address comes from a signed wallet session, so every response joins to the chain automatically and nothing is typed. Only reaches people who connected. |
+| Google Form | [forms.gle/H1zS9wVeurADwuvt7](https://forms.gle/H1zS9wVeurADwuvt7) | Address is self-reported, so the join is manual and mistypable. Works in a Discord message and needs no wallet. |
+
+Neither is redundant. The in-app form has the better data; the Google Form reaches the person who
+bounced at the wallet install — who is frequently the most useful respondent, and who the in-app
+form structurally cannot hear from.
 
 ## What this form is for
 
