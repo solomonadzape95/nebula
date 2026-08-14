@@ -2,7 +2,7 @@ metric,value,unit
 network,testnet,
 vault_contract,CDONRBWSSLXWLB7YN6SI4MDBIFTXBKBZTKOGRL537LP4RGAIXDLBHMQX,
 share_token_contract,CAEEI27XLJHMJBI25PL36DJ7FEK6TMVCQ7TP2PRQ4EXFVOUK5NI464CT,
-exported_at_utc,2026-08-14T08:05:45.191Z,
+exported_at_utc,2026-08-14T08:36:22.981Z,
 unique_depositors,1,wallets
 depositors_active_on_more_than_one_day,0,wallets
 deposits,1,transactions
