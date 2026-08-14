@@ -12,35 +12,33 @@
 
 ## 0. Scoreboard
 
-*Last audited against the repository on 2026-07-28, at 62 commits.*
+*Last audited against the repository on 2026-08-14, at 69 commits.*
 
 | Category | Requirements | Done |
 |---|---|---|
-| Production MVP | 4 | 2 / 4 |
+| Production MVP | 4 | 3 / 4 |
 | User Onboarding | 3 | 0 / 3 |
-| Product Quality | 4 | 1 / 4 |
-| Technical Standards | 3 | 2 / 3 |
+| Product Quality | 4 | 3 / 4 |
+| Technical Standards | 3 | 3 / 3 |
 | Demo & Review | 2 | 0 / 2 |
-| **Submission checklist** | **11** | **4 / 11** |
+| **Submission checklist** | **11** | **5 / 11** |
 
-### The three things actually standing between here and a pass
+### The one thing actually standing between here and a pass
 
-Everything else is either done or is downstream of these.
+**Nobody outside this project has used it.** Zero external users, zero survey responses. This is
+the requirement that fails submissions, it cannot be backfilled in the final week, and every other
+item is either done or is downstream of it — the funnel screenshot, the feedback summary and half
+the demo video are all just renderings of user activity that has not happened.
 
-**1. The deployed contracts are not the reviewed contracts.** `deployments/testnet.json` was written
-at `b427840`; the security pass landed afterwards at `180ae18`. So the vault on testnet has no
-`mark_to_market`, no sweep guard on the share token, no `vault()` check in `add_strategy`, and a
-burn that any holder can call. The README and this document describe the fixed behaviour. **Redeploy
-before recruiting anyone** — it also restarts the "stable for ≥2 weeks" clock, which is a reason to
-do it today rather than next week. The 11 existing depositors are self-generated, so nothing of
-value is lost by starting the event history again.
+Everything that could be closed without other people has been. Cleared on 2026-08-14:
 
-**2. Nobody outside this project has used it.** 11 depositors, all wallets generated and funded
-minutes apart from the same faucet. A reviewer will see that. This is the requirement that fails
-submissions and it cannot be backfilled in the final week.
-
-**3. Sentry is not installed.** 3.2 asks for PostHog *and* Sentry. PostHog is live and verified;
-Sentry is the smaller half of the same job and is still missing.
+- **The contracts were redeployed** on the post-security-pass build, so the vault on testnet now
+  matches what the README describes, and the ≥2-week stability clock has started.
+- **Error tracking shipped** — in PostHog rather than Sentry, deliberately; see 3.2.
+- **The live URL is filled in** at [nebula.thesolenoid.space](https://nebula.thesolenoid.space),
+  on a custom domain rather than `*.vercel.app`.
+- **The evidence export was regenerated** against the new vault, so it no longer reports a retired
+  contract's numbers as current traction.
 
 ---
 
@@ -49,8 +47,8 @@ Sentry is the smaller half of the same job and is still missing.
 | # | Requirement | Acceptance criteria — what "done" concretely means | Status | Evidence |
 |---|---|---|---|---|
 | 1.1 | Fully functional production-ready MVP | End-to-end on testnet: connect wallet → deposit XLM → receive nXLM → see share price → redeem XLM. Every step works on a clean browser with no console errors. | ✅ | Full cycle executed against the live Blend pool; signing round trip verified end to end. 20 routes building. |
-| 1.2 | Stable frontend + contract architecture | Contracts deployed and stable for ≥2 weeks before submission with no redeploy. Frontend on a stable domain. Strategy trait implemented so adding a venue needs no vault change. | ⬜ | **Blocked: a redeploy is still owed.** The trait half is done — `Strategy` is implemented and a venue needs no vault change. The stability clock has not started, because the deployed contracts predate the security fixes. |
-| 1.3 | Mobile responsive UI | Every screen usable at 375px width. Wallet connect works in mobile browsers. No horizontal scroll anywhere. | 🟡 | Built responsive throughout; tab strips collapse behind a menu below `md`. Not yet checked on a real iOS or Android device. |
+| 1.2 | Stable frontend + contract architecture | Contracts deployed and stable for ≥2 weeks before submission with no redeploy. Frontend on a stable domain. Strategy trait implemented so adding a venue needs no vault change. | 🟡 | Redeployed 2026-08-14 on the post-security-pass build, so the **clock has started** — freeze the contracts from here. Frontend on a custom domain. The trait half is done: `Strategy` is implemented and a venue needs no vault change. |
+| 1.3 | Mobile responsive UI | Every screen usable at 375px width. Wallet connect works in mobile browsers. No horizontal scroll anywhere. | 🟡 | Built responsive throughout; tab strips collapse behind a menu below `md`. Shader heroes now render as a frozen still below 768px and on touch devices — they were fragment-bound and janked the hero on a phone. Layout still unverified on a real iOS or Android device. |
 | 1.4 | Loading states + error handling | Skeletons on every async read. Disabled+spinner on every tx button. Human-readable errors for: wallet rejected, insufficient balance, missing trustline, tx timeout, network down, contract error. **No raw error codes shown to users.** | ✅ | `VAULT_ERRORS` maps every contract code to a sentence in `lib/tx.ts`; `DataNotice` covers RPC and indexer outage; skeletons on async reads; tx buttons disable with a dithered spinner. |
 
 **Error handling is the cheapest place to look production-grade.** Most submissions at this level
@@ -74,7 +72,7 @@ plus a suggested fix. Reviewers notice immediately.
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 2.1 | Minimum 10 real users onboarded | ≥10 **distinct wallet addresses** that deposited. Aim for **20+** — some will be rejected as obviously self-generated. | ⬜ | 11 depositors indexed, **all self-generated** — funded minutes apart from the same faucet. Counts as plumbing proven, not as the requirement met. Real total: 0. |
+| 2.1 | Minimum 10 real users onboarded | ≥10 **distinct wallet addresses** that deposited. Aim for **20+** — some will be rejected as obviously self-generated. | ⬜ | **0.** The retired vault's 11 depositors were all self-generated and are not carried forward; the new vault has one address, the project's own test account. Every depositor from here is a genuine one, which is the point of having redeployed first. |
 | 2.2 | Proof of wallet interactions | A table of address → tx hash → Stellar Expert link → action → timestamp. Plus a dashboard screenshot showing the count. Exportable as CSV. | 🟡 | Built, populated and exportable: `/asdfg/admin/users` lists every depositor with amount, first tx hash and a Stellar Expert link, and `npm run export` writes the same record to [`../evidence/`](../evidence/) as CSV with a per-row explorer URL. Waiting on real addresses to put in it. |
 | 2.3 | Basic user feedback collection | ≥8 responses to a structured form + an in-app feedback widget. Summarized with actions taken. | 🟡 | In-app widget shipped — floating button, 1–5 rating, free text, stored in Postgres and surfaced at `/asdfg/admin/feedback` with an "actioned" column. Whether the reviewer deposited is read from their on-chain history rather than self-reported. The structured form is specced field by field in [`USER_SURVEY.md`](USER_SURVEY.md) and **not yet built or sent — 0 responses.** |
 
@@ -106,9 +104,9 @@ Built and generated, not a template: `cd indexer && npm run export` writes
 [`../evidence/`](../evidence/) — a row per wallet, a row per transaction, a row per harvest, each
 with its own tx hash and Stellar Expert URL. Attach the CSVs and screenshot `/asdfg/admin/users`.
 
-`depositors.csv` also carries `days_active`, which is the column a reviewer will read hardest: the
-current 11 addresses all read `1`, because they were scripted in one afternoon. It is reported rather
-than filtered, on the grounds that a file caught hiding one thing is not believed about anything.
+`depositors.csv` also carries `days_active`, which is the column a reviewer will read hardest — a
+batch of wallets driven from one script in one sitting all read `1`. It is reported rather than
+filtered, on the grounds that a file caught hiding one thing is not believed about anything.
 
 ### Feedback form
 
@@ -126,8 +124,8 @@ persistent in-app button is visible proof in a screenshot.
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 3.1 | Production deployment | Live on a real domain (Vercel + custom domain preferred over `*.vercel.app`). HTTPS. Uptime through the review window. | 🟡 | Deployed to Vercel; database on Supabase, indexer on a GitHub Actions schedule. **Paste the URL here.** Still on `*.vercel.app` — a custom domain is a cheap upgrade the criteria explicitly prefer. |
-| 3.2 | Monitoring + analytics | **PostHog** (funnels, events, sessions) **and** **Sentry** (error tracking + alerts), both live in production with real captured data. | 🟡 | **PostHog live and verified** — first-party `/ingest` proxy so ad blockers do not silently eat the data, funnel instrumented, drop-off panel in admin joining it to on-chain depositors. **Sentry not installed.** "Real captured data" also still pending real traffic. |
+| 3.1 | Production deployment | Live on a real domain (Vercel + custom domain preferred over `*.vercel.app`). HTTPS. Uptime through the review window. | ✅ | [nebula.thesolenoid.space](https://nebula.thesolenoid.space) — Vercel on a custom domain, HTTPS. Database on Supabase, indexer on a GitHub Actions schedule. |
+| 3.2 | Monitoring + analytics | Analytics **and** error monitoring, both live in production with real captured data. | 🟡 | **Both live in PostHog, and Sentry is deliberately not installed.** Funnel instrumented behind a typed event union, first-party `/ingest` proxy so blockers do not silently eat the data, drop-off panel in admin joining it to on-chain depositors. Errors captured on both sides — `capture_exceptions` in the browser, `onRequestError` on the server. One vendor means an `$exception` sits on the same timeline as the funnel that produced it; with two, "the funnel leaks at signing, what threw?" is a manual identity reconciliation across dashboards. Held at 🟡 only because "real captured data" still needs real traffic. |
 | 3.3 | Optimized UX | Lighthouse ≥90 performance and ≥90 accessibility on mobile. First deposit in <2 min. No dead ends. | ⬜ | Not measured. Run Lighthouse against the deployed URL and record both numbers — this is a measurement task, not a build task. |
 | 3.4 | Project structure + docs | Monorepo per NEBULA.md §8. README with setup, architecture, contract addresses. Inline docs on every public contract function. | ✅ | Root README covers setup, architecture, addresses, testing and security posture; `web/` and `indexer/` have their own. Every public contract function carries a doc comment explaining the reasoning, not just the signature. |
 
@@ -168,12 +166,14 @@ funnel and need opposite responses.
 at each step. That single image is proof of analytics *and* of product validation. It also tells
 you where your onboarding actually leaks — fix the biggest drop before submitting.
 
-### Sentry setup
+### Error tracking
 
-- Frontend errors with source maps uploaded
-- Contract call failures captured with the invocation args as context
-- Release tagging so errors map to commits
-- Alert rule configured (proves it's a real setup, not a copy-pasted DSN)
+Shipped in PostHog, not Sentry — see 3.2 for the reasoning. Still worth doing before submission:
+
+- Configure an alert rule on `$exception` volume. An alert that has actually fired proves a real
+  setup rather than a switch someone flipped on the last day.
+- Trigger one error deliberately on production and confirm it lands, so the screenshot for
+  checklist item 8 has something in it.
 
 ---
 
@@ -181,8 +181,8 @@ you where your onboarding actually leaks — fix the biggest drop before submitt
 
 | # | Requirement | Acceptance criteria | Status | Evidence |
 |---|---|---|---|---|
-| 4.1 | Contracts on Stellar testnet | Vault, nXLM token, Blend strategy all deployed; IDs in the README; verified on Stellar Expert. Full deposit → allocate → harvest → redeem cycle executed against the live Blend pool. | 🟡 | All three deployed, IDs in the README with Stellar Expert links, full cycle executed against the real pool — see [`deployments/testnet.json`](../deployments/testnet.json). Held at 🟡 only because **the deployed build predates the security fixes**; redeploying settles this row and 1.2 together. |
-| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | ✅ | **62 commits**, every one Conventional Commits, zero `wip`/`update`/`fix stuff` subjects. Each carries the reasoning, so the log reads as a build history rather than a changelog. |
+| 4.1 | Contracts on Stellar testnet | Vault, nXLM token, Blend strategy all deployed; IDs in the README; verified on Stellar Expert. Full deposit → allocate → harvest → redeem cycle executed against the live Blend pool. | ✅ | All three redeployed 2026-08-14 on the reviewed build, IDs in the README with Stellar Expert links, full cycle re-executed against the real pool via `scripts/smoke-test.sh` — see [`deployments/testnet.json`](../deployments/testnet.json). The sync decoded a `strategy_loss` event, one of the security fixes proving itself on-chain. |
+| 4.2 | Minimum 15+ meaningful commits | Target **40+**. Each is a real, scoped change with a descriptive message. **No "wip", "fix", "update", or single mega-commit.** | ✅ | **69 commits**, every one Conventional Commits, zero `wip`/`update`/`fix stuff` subjects. Each carries the reasoning, so the log reads as a build history rather than a changelog. |
 | 4.3 | Public GitHub repository | Public, with README, LICENSE, `.gitignore`, and no committed secrets. | ✅ | [`solomonadzape95/nebula`](https://github.com/solomonadzape95/nebula) — public, Apache-2.0, `.gitignore` in place. Scanned every commit in history for real keys and connection strings: none. Live credentials sit in `.env.local` and platform env vars, and `.env.example` is the only env file tracked. |
 
 ### Commit discipline
@@ -252,14 +252,14 @@ scored requirement and a screenshot proves less than motion.
 |---|---|---|---|
 | 1 | Public GitHub repository | ✅ | [solomonadzape95/nebula](https://github.com/solomonadzape95/nebula) |
 | 2 | README with complete documentation | ✅ | [`README.md`](../README.md) |
-| 3 | 15+ meaningful commits (target 40+) | ✅ | 62, all Conventional Commits |
-| 4 | Live demo link | 🟡 | Deployed to Vercel — **paste the URL** |
+| 3 | 15+ meaningful commits (target 40+) | ✅ | 69, all Conventional Commits |
+| 4 | Live demo link | ✅ | [nebula.thesolenoid.space](https://nebula.thesolenoid.space) |
 | 5 | Contract deployment addresses | ✅ | [`deployments/testnet.json`](../deployments/testnet.json) + README table |
 | 6 | Screenshot — product UI | ⬜ | |
 | 7 | Screenshot — mobile responsive design | ⬜ | |
-| 8 | Screenshot — analytics / monitoring setup | ⬜ | Needs real traffic first, or the funnel is a row of zeros |
+| 8 | Screenshot — analytics / monitoring setup | ⬜ | Setup is live; needs real traffic first, or the funnel is a row of zeros |
 | 9 | Demo video link | ⬜ | |
-| 10 | Proof of 10+ user wallet interactions | ⬜ | Page built and populated; addresses are self-generated |
+| 10 | Proof of 10+ user wallet interactions | ⬜ | Page and CSV export built and working; **0 external addresses** |
 | 11 | User feedback summary | ⬜ | Widget shipped, 0 responses |
 
 ### Screenshot shot list
@@ -314,20 +314,24 @@ work at the end of week 4 and treat user acquisition as the deliverable it is.
 
 ### Where this actually is
 
-Weeks 1–3 are done and week 4 is nearly done: contracts, strategy layer, testnet deploy, the full
-frontend, polish, the indexer, and PostHog are all shipped. Week 4's exit condition is one item
-short — Sentry — plus the redeploy owed from the security pass.
+**Weeks 1–4 are done.** Contracts, strategy layer, testnet deploy, the full frontend, polish, the
+indexer, analytics and error tracking are all shipped, the redeploy owed from the security pass has
+landed, and the app is live on a custom domain. Week 4's exit condition is met apart from its last
+clause: *first 3 external users.*
 
 **The week-5 work has not started, and it is the work that decides this.** Zero external users, zero
-feedback responses. Everything built since is only worth what someone else's hands make of it. The
-ordered path from here:
+feedback responses. Everything built is only worth what someone else's hands make of it. The ordered
+path from here, and note that the first four items are all the same item:
 
-1. **Redeploy the contracts** with the security fixes. Starts the stability clock and makes the
-   documentation true.
-2. **Install Sentry.** Half an hour, and it closes 3.2.
-3. **Fill in the deployment URL** in 3.1 and checklist item 4, and put a custom domain on it.
-4. **Recruit.** Everything above is prologue; this is the deliverable.
+1. **Build the survey** from [`USER_SURVEY.md`](USER_SURVEY.md) in Google Forms. One afternoon.
+2. **Recruit.** Stellar Discord, r/Stellar, the cohort, Telegram. Target 20 so 10 survive scrutiny.
+3. **Send the form** to everyone who deposits, while the wallet is still open.
+4. **Act on what comes back**, and record what changed. *"n responses, m corroborated on-chain, k
+   changes shipped as a result"* is worth more to a reviewer than any average rating.
 5. Screenshots and the demo video last, once the funnel has real numbers in it.
+
+**Freeze the contracts from here.** The stability clock started 2026-08-14 and another redeploy
+resets both it and the event history.
 
 ---
 
