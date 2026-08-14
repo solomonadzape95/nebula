@@ -57,10 +57,20 @@ async function writeState(
   lastLedger: number,
   oldestAvailable: number,
 ): Promise<void> {
+  // Upsert, not update. The row is seeded by migration 001, but a `DELETE FROM sync_state` — the
+  // obvious way to reset an index by hand — removes it, and an UPDATE against a missing singleton
+  // affects zero rows and reports success. The indexer then re-probes from the oldest retained
+  // ledger on every single run, forever, while its logs read exactly like a healthy sync.
+  //
+  // Silent is the problem. Re-probing is survivable; not being able to tell is not.
   await db.query(
-    `UPDATE sync_state
-        SET cursor = $1, last_ledger = $2, oldest_available = $3, updated_at = now()
-      WHERE id = 1`,
+    `INSERT INTO sync_state (id, cursor, last_ledger, oldest_available, updated_at)
+     VALUES (1, $1, $2, $3, now())
+     ON CONFLICT (id) DO UPDATE
+        SET cursor = EXCLUDED.cursor,
+            last_ledger = EXCLUDED.last_ledger,
+            oldest_available = EXCLUDED.oldest_available,
+            updated_at = now()`,
     [cursor, lastLedger, oldestAvailable],
   );
 }
@@ -167,6 +177,34 @@ export async function sync(db: Db, config: Config): Promise<SyncResult> {
   let startLedger: number | undefined;
   let gapDetected = false;
   let oldestAvailable = 0;
+
+  // A cursor older than RPC's retention window is not a resume point, it is a dead end.
+  //
+  // `getEvents` rejects a cursor it can no longer serve, and the rejection happens before anything
+  // is ingested — so the run fails, the cursor is never advanced, and the next run fails in exactly
+  // the same place. The indexer stops forever while still looking alive on a schedule.
+  //
+  // This is not hypothetical: after the 2026-08-14 redeploy, production held a cursor from July and
+  // could not have ingested a single event from the new vault. Falling back to the ledger-range
+  // path lets the sync resume at the oldest ledger RPC still holds. The events in between are
+  // genuinely gone, which is what `gapDetected` is for — but losing the past is not a reason to
+  // also lose the present.
+  if (cursor && cursorLedger(cursor) > 0) {
+    const latest = await server.getLatestLedger();
+    const probe = await server.getEvents({
+      startLedger: Math.max(latest.sequence - 1, 1),
+      filters,
+      limit: 1,
+    });
+    if (cursorLedger(cursor) < probe.oldestLedger) {
+      console.warn(
+        `  ! STALE CURSOR: at ledger ${cursorLedger(cursor)}, but RPC only retains from ` +
+          `${probe.oldestLedger}. Restarting from the oldest retained ledger.`,
+      );
+      cursor = null;
+      gapDetected = true;
+    }
+  }
 
   if (!cursor) {
     // Probe once to learn the RPC's retention window before asking for a range it cannot serve.
