@@ -31,6 +31,16 @@ jobs:
 
       - run: npm ci
 
+      # Migrations are idempotent and tracked, so this is a no-op on every run but the first after
+      # a new file lands. Without it a schema change reaches production only if someone remembers
+      # to apply it by hand, and the failure mode is a page that 500s on submit — which is how a
+      # tester who bothered to write feedback gets told their answers were lost.
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NETWORK: testnet
+        run: npm run migrate
+
       # `sync` exits non-zero when it detects a retention gap, so the run goes red rather than
       # quietly under-reporting.
       - name: Sync events
