@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 
+import { useStillField } from "./use-still-field";
+
 /**
  * A real photograph, dithered on the GPU.
  *
@@ -59,12 +61,20 @@ export function ImageField({
   fit = "cover",
 }: ImageFieldProps) {
   const { src, alt } = SOURCES[source];
+  const still = useStillField();
 
   return (
     <div className={className} role="img" aria-label={alt}>
       <ImageDithering
         className="absolute inset-0 h-full w-full"
         image={src}
+        /* The output is a still either way — this is a photograph, not a generated field — so
+           pinning the speed to zero costs nothing and guarantees no animation frame is ever
+           scheduled for it. The pixel cap is the part that matters on a phone: the source images
+           are full-resolution NASA plates, and dithering one across a DPR-3 viewport is a large
+           amount of fill for something the halftone grid immediately coarsens. */
+        speed={0}
+        maxPixelCount={still ? 1280 * 720 : undefined}
         colorBack={colorBack}
         colorFront={colorFront}
         colorHighlight={colorHighlight}

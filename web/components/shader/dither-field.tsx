@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useSyncExternalStore } from "react";
+
+import { STILL_FRAME, useStillField } from "./use-still-field";
 
 /**
  * The one piece of motion in the whole design.
@@ -10,6 +11,10 @@ import { useSyncExternalStore } from "react";
  * compromise on the "space footage through a halftone filter" idea, it is a better version of it:
  * a video would be several megabytes, would loop visibly, would need a licence, and would blow the
  * mobile performance budget. This renders at any resolution, never repeats, and costs ~0 bytes.
+ *
+ * **On mobile it does not animate.** See `useStillField` for why. The still is not a downgraded
+ * substitute — it is the same shader drawn at a fixed frame, so the art direction is identical and
+ * only the motion is gone.
  */
 
 // WebGL only exists in the browser, so the shader is loaded client-side only. Doing it this way
@@ -34,20 +39,15 @@ const VARIANTS = {
   drift: { shape: "simplex", type: "8x8", pxSize: 2.6, speed: 0.16, scale: 1.4 },
 } as const;
 
-const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
-
-/** Subscribes to the OS motion preference the way React wants external state read. */
-function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const query = window.matchMedia(REDUCED_MOTION);
-      query.addEventListener("change", onChange);
-      return () => query.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia(REDUCED_MOTION).matches,
-    () => false,
-  );
-}
+/**
+ * Fill-rate ceiling for a still field.
+ *
+ * A frozen shader still pays for its one draw, and on a phone at DPR 3 a full-bleed hero is several
+ * million fragments of noise — enough to stall the first paint on the very devices this is meant to
+ * unburden. Capping the buffer and letting it scale up costs nothing visible through a dither this
+ * coarse, where the halftone grid is already throwing away that detail.
+ */
+const STILL_MAX_PIXELS = 1280 * 720;
 
 interface DitherFieldProps {
   variant?: FieldVariant;
@@ -68,7 +68,7 @@ export function DitherField({
   scale,
 }: DitherFieldProps) {
   const preset = VARIANTS[variant];
-  const reducedMotion = usePrefersReducedMotion();
+  const still = useStillField();
 
   return (
     <div className={className}>
@@ -91,7 +91,11 @@ export function DitherField({
         type={preset.type}
         pxSize={preset.pxSize}
         scale={scale ?? preset.scale}
-        speed={reducedMotion ? 0 : preset.speed * speed}
+        /* Speed 0 does not merely slow the field down — it cancels the animation frame outright,
+           so a still costs one draw and then nothing at all for as long as the page is open. */
+        speed={still ? 0 : preset.speed * speed}
+        frame={still ? STILL_FRAME : undefined}
+        maxPixelCount={still ? STILL_MAX_PIXELS : undefined}
       />
     </div>
   );
