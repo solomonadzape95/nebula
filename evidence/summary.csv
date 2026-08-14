@@ -1,20 +1,20 @@
 metric,value,unit
 network,testnet,
-vault_contract,CDGRL2EMFMLOCD6NRUKCL6CPNAF4SWK4DLQIM2AGFIN5P5CK3VXTUPHO,
-share_token_contract,CAVRFADYBNPLRL734VGRS6FW4LXRDEKRZZDQCSMB7VXCFZPDZ5JB3SN2,
-exported_at_utc,2026-07-29T21:30:46.615Z,
-unique_depositors,11,wallets
+vault_contract,CDONRBWSSLXWLB7YN6SI4MDBIFTXBKBZTKOGRL537LP4RGAIXDLBHMQX,
+share_token_contract,CAEEI27XLJHMJBI25PL36DJ7FEK6TMVCQ7TP2PRQ4EXFVOUK5NI464CT,
+exported_at_utc,2026-08-14T08:05:45.191Z,
+unique_depositors,1,wallets
 depositors_active_on_more_than_one_day,0,wallets
-deposits,12,transactions
-withdrawals,5,transactions
-total_deposited,4692.0000000,XLM
-total_withdrawn,390.0150438,XLM
-tvl,4302.0512420,XLM
-share_price,1.0001611,XLM per nXLM
-harvests,6,transactions
-gross_yield_realized,0.0736505,XLM
-protocol_fees_taken,0.0073647,XLM
-realized_apy,9.8432,percent
-realized_apy_window,15.03,hours
-first_activity_utc,2026-07-27T17:00:32.000Z,
-last_activity_utc,2026-07-28T08:02:22.000Z,
+deposits,1,transactions
+withdrawals,1,transactions
+total_deposited,100.0000000,XLM
+total_withdrawn,99.9999606,XLM
+tvl,0.0001001,XLM
+share_price,1.0009990,XLM per nXLM
+harvests,1,transactions
+gross_yield_realized,0.0000675,XLM
+protocol_fees_taken,0.0000067,XLM
+realized_apy,,percent
+realized_apy_window,,hours
+first_activity_utc,2026-08-14T07:57:41.000Z,
+last_activity_utc,2026-08-14T07:58:16.000Z,
