@@ -184,11 +184,14 @@ export async function sync(db: Db, config: Config): Promise<SyncResult> {
   // is ingested — so the run fails, the cursor is never advanced, and the next run fails in exactly
   // the same place. The indexer stops forever while still looking alive on a schedule.
   //
-  // This is not hypothetical: after the 2026-08-14 redeploy, production held a cursor from July and
-  // could not have ingested a single event from the new vault. Falling back to the ledger-range
-  // path lets the sync resume at the oldest ledger RPC still holds. The events in between are
-  // genuinely gone, which is what `gapDetected` is for — but losing the past is not a reason to
-  // also lose the present.
+  // The window that triggers it is narrow but real: the indexer has to be down for longer than
+  // RPC's retention — roughly a week — which a paused schedule, a rotated secret, or an expired
+  // Actions cron will all produce eventually. The gap check below already anticipated exactly this
+  // state; it just could not act on it, because the cursor branch is chosen before it runs.
+  //
+  // Falling back to the ledger-range path lets the sync resume at the oldest ledger RPC still
+  // holds. The events in between are genuinely gone, which is what `gapDetected` is for — but
+  // losing the past is not a reason to also lose the present.
   if (cursor && cursorLedger(cursor) > 0) {
     const latest = await server.getLatestLedger();
     const probe = await server.getEvents({
