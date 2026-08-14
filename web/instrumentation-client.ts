@@ -33,6 +33,20 @@ if (key) {
       // consumer of the free tier's quota.
       disable_session_recording: true,
 
+      // Error tracking. PostHog captures unhandled errors and rejected promises as `$exception`
+      // events, stack-traced and grouped by issue, which is the monitoring half of the
+      // requirement — and it lands on the same timeline as the funnel, so an error is one click
+      // from the session that produced it rather than sitting in a second vendor's dashboard with
+      // its own user identity to reconcile.
+      //
+      // Console errors stay off: this app logs RPC hiccups it already recovers from, and letting
+      // those in would bury the real ones under noise that has no user impact.
+      capture_exceptions: {
+        capture_unhandled_errors: true,
+        capture_unhandled_rejections: true,
+        capture_console_errors: false,
+      },
+
       persistence: "localStorage+cookie",
 
       // The address is set explicitly on connect, via `identifyWallet`. Until then a visitor is
